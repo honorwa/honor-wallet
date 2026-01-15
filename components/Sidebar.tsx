@@ -195,15 +195,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-zinc-600 hover:text-[#D4AF37] transition-colors cursor-pointer group">
                 <Globe className="w-4 h-4" />
-                <select 
+                <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as any)}
-                className="bg-transparent text-[9px] font-black uppercase tracking-[0.2em] focus:outline-none cursor-pointer appearance-none"
+                className="bg-zinc-900 text-zinc-300 text-[9px] font-black uppercase tracking-[0.2em] focus:outline-none cursor-pointer px-2 py-1 rounded border border-[#D4AF37]/20 hover:border-[#D4AF37]/40 transition-colors"
                 >
-                <option value="en">English</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-                <option value="it">Italiano</option>
+                <option value="en" className="bg-zinc-900 text-white">English</option>
+                <option value="fr" className="bg-zinc-900 text-white">Français</option>
+                <option value="es" className="bg-zinc-900 text-white">Español</option>
+                <option value="it" className="bg-zinc-900 text-white">Italiano</option>
                 </select>
             </div>
           </div>

@@ -100,6 +100,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [language, setLanguage] = useState<"en" | "fr" | "es" | "it">("en");
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   const t = translations[language];
 
@@ -170,17 +171,29 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         </div>
 
         <div className="absolute top-8 right-8 z-20">
-             <div className="relative group">
-                <button className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider border border-white/10 px-3 py-1.5 rounded-full">
+             <div className="relative">
+                <button
+                  onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                  className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider border border-white/10 px-3 py-1.5 rounded-full hover:border-[#D4AF37]/40"
+                >
                     <Globe className="w-3 h-3" /> {language.toUpperCase()}
                 </button>
-                <div className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-white/10 rounded-lg overflow-hidden hidden group-hover:block z-50">
+                {showLanguageMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-white/10 rounded-lg overflow-hidden z-50">
                     {['en', 'fr', 'es', 'it'].map((l) => (
-                        <button key={l} onClick={() => setLanguage(l as any)} className="w-full text-left px-4 py-2 text-xs uppercase text-zinc-400 hover:text-white hover:bg-white/5">
+                        <button
+                          key={l}
+                          onClick={() => {
+                            setLanguage(l as any);
+                            setShowLanguageMenu(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs uppercase text-zinc-300 hover:text-white hover:bg-white/5"
+                        >
                             {l === 'en' ? 'English' : l === 'fr' ? 'Français' : l === 'es' ? 'Español' : 'Italiano'}
                         </button>
                     ))}
-                </div>
+                  </div>
+                )}
              </div>
         </div>
 

@@ -18,7 +18,9 @@ const translations = {
 export const LiveRates: React.FC<LiveRatesProps> = ({ marketPrices, language = "en" }) => {
   const [baseCurrency, setBaseCurrency] = useState("USD");
   const [displayedAssets, setDisplayedAssets] = useState(['BTC', 'ETH', 'SOL']);
-  
+  const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
+  const [showAssetMenu, setShowAssetMenu] = useState(false);
+
   const t = translations[language] || translations.en;
 
   const formatPrice = (price: number | undefined) => {
@@ -47,40 +49,55 @@ export const LiveRates: React.FC<LiveRatesProps> = ({ marketPrices, language = "
           {t.title}
         </h3>
         <div className="flex items-center gap-2">
-          <div className="relative group">
-            <button className="flex items-center gap-1 bg-black border border-[#D4AF37]/20 text-[#D4AF37] text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-[#D4AF37]/10 transition-colors">
+          <div className="relative">
+            <button
+              onClick={() => setShowCurrencyMenu(!showCurrencyMenu)}
+              className="flex items-center gap-1 bg-black border border-[#D4AF37]/20 text-[#D4AF37] text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-[#D4AF37]/10 transition-colors"
+            >
               {baseCurrency} <ChevronDown className="w-3 h-3" />
             </button>
-            <div className="absolute right-0 top-full mt-1 w-20 bg-black border border-[#D4AF37]/20 rounded-lg shadow-xl overflow-hidden hidden group-hover:block z-10">
+            {showCurrencyMenu && (
+              <div className="absolute right-0 top-full mt-1 w-20 bg-black border border-[#D4AF37]/20 rounded-lg shadow-xl overflow-hidden z-20">
                 {["USD"].map(c => (
-                    <button 
-                        key={c} 
-                        onClick={() => setBaseCurrency(c)}
-                        className="w-full text-left px-3 py-2 text-[10px] font-bold text-zinc-400 hover:bg-[#D4AF37]/10 hover:text-[#D4AF37]"
-                    >
-                        {c}
-                    </button>
+                  <button
+                    key={c}
+                    onClick={() => {
+                      setBaseCurrency(c);
+                      setShowCurrencyMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-[10px] font-bold text-zinc-400 hover:bg-[#D4AF37]/10 hover:text-[#D4AF37]"
+                  >
+                    {c}
+                  </button>
                 ))}
-            </div>
+              </div>
+            )}
           </div>
-          
+
           {/* Add Coin Selector */}
-          <div className="relative group">
-            <button className="p-1.5 hover:bg-[#D4AF37]/10 rounded-lg transition-colors text-[#D4AF37]">
-                <Plus className="w-3 h-3" />
+          <div className="relative">
+            <button
+              onClick={() => setShowAssetMenu(!showAssetMenu)}
+              className="p-1.5 hover:bg-[#D4AF37]/10 rounded-lg transition-colors text-[#D4AF37]"
+            >
+              <Plus className="w-3 h-3" />
             </button>
-            <div className="absolute right-0 top-full mt-1 w-40 bg-black border border-[#D4AF37]/20 rounded-lg shadow-xl overflow-hidden hidden group-hover:block z-10 max-h-48 overflow-y-auto custom-scrollbar">
+            {showAssetMenu && (
+              <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-900 border border-[#D4AF37]/20 rounded-lg shadow-xl overflow-hidden z-20 max-h-48 overflow-y-auto custom-scrollbar">
                 {AVAILABLE_CRYPTOS.map(c => (
-                    <button 
-                        key={c.symbol} 
-                        onClick={() => toggleAsset(c.symbol)}
-                        className="w-full text-left px-3 py-2 text-[10px] font-bold flex justify-between hover:bg-[#D4AF37]/10"
-                    >
-                        <span className="text-white">{c.symbol}</span>
-                        {displayedAssets.includes(c.symbol) && <span className="text-[#D4AF37]">✓</span>}
-                    </button>
+                  <button
+                    key={c.symbol}
+                    onClick={() => {
+                      toggleAsset(c.symbol);
+                    }}
+                    className="w-full text-left px-3 py-2 text-[10px] font-bold flex justify-between hover:bg-[#D4AF37]/10"
+                  >
+                    <span className="text-white">{c.symbol}</span>
+                    {displayedAssets.includes(c.symbol) && <span className="text-[#D4AF37]">✓</span>}
+                  </button>
                 ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

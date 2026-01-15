@@ -16,6 +16,14 @@ export const BuyCrypto: React.FC<BuyCryptoProps> = ({ onBuy, availableCryptos = 
   const [step, setStep] = useState<'amount' | 'payment' | 'onramp_process' | 'success'>('amount');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'wire' | 'onramp'>('card');
   const [selectedProvider, setSelectedProvider] = useState<string>('MoonPay');
+
+  const onRampProviders = [
+    { name: 'MoonPay', description: 'Fast & secure, supports 160+ countries' },
+    { name: 'Transak', description: 'Low fees, supports Apple Pay & Google Pay' },
+    { name: 'Ramp Network', description: 'Instant transfers, bank cards & SEPA' },
+    { name: 'Mont Pelerin', description: 'Swiss-based, SEPA & CHF support' },
+    { name: 'Banxa', description: 'Global coverage, 200+ payment methods' }
+  ];
   const [isProcessing, setIsProcessing] = useState(false);
   
   // AI State
@@ -42,7 +50,7 @@ export const BuyCrypto: React.FC<BuyCryptoProps> = ({ onBuy, availableCryptos = 
     try {
         const ai = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
         
-        const prompt = `Analyze the current typical fee structures and success rates for fiat-to-crypto on-ramp providers: MoonPay, Transak, and Ramp Network.
+        const prompt = `Analyze the current typical fee structures and success rates for fiat-to-crypto on-ramp providers: MoonPay, Transak, Ramp Network, Mont Pelerin, and Banxa.
 The user wants to buy ${selectedCrypto.name} (${selectedCrypto.symbol}).
 
 Recommend the best provider based on:
@@ -293,14 +301,17 @@ Keep it very brief (max 2 sentences). Start with "I recommend [Provider] because
 
                     <div className="space-y-3">
                         <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">Select Provider</label>
-                        {['MoonPay', 'Transak', 'Ramp Network'].map(provider => (
+                        {onRampProviders.map(provider => (
                             <button
-                                key={provider}
-                                onClick={() => setSelectedProvider(provider)}
-                                className={`w-full p-4 rounded-xl border flex items-center justify-between transition-all ${selectedProvider === provider ? 'bg-[#D4AF37] border-[#D4AF37] text-black' : 'bg-black border-white/10 text-zinc-400 hover:border-white/30'}`}
+                                key={provider.name}
+                                onClick={() => setSelectedProvider(provider.name)}
+                                className={`w-full p-4 rounded-xl border flex items-center justify-between transition-all ${selectedProvider === provider.name ? 'bg-[#D4AF37] border-[#D4AF37] text-black' : 'bg-black border-white/10 text-white hover:border-white/30'}`}
                             >
-                                <span className="font-bold">{provider}</span>
-                                {selectedProvider === provider && <CheckCircle className="w-5 h-5 text-black" />}
+                                <div className="text-left">
+                                    <div className="font-bold">{provider.name}</div>
+                                    <div className={`text-xs mt-0.5 ${selectedProvider === provider.name ? 'text-black/70' : 'text-zinc-500'}`}>{provider.description}</div>
+                                </div>
+                                {selectedProvider === provider.name && <CheckCircle className="w-5 h-5 text-black shrink-0" />}
                             </button>
                         ))}
                     </div>
