@@ -12,14 +12,23 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Vérification des variables d'environnement
-if (!firebaseConfig.apiKey) {
-  throw new Error('❌ Firebase API Key manquante! Vérifiez votre fichier .env.local');
+// Initialisation with error handling
+let app;
+let auth;
+let db;
+
+try {
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('Demo')) {
+    console.warn('⚠️ Firebase not configured with real credentials. App will use fallback authentication.');
+  }
+
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  console.log('✅ Firebase initialized:', firebaseConfig.projectId);
+} catch (error) {
+  console.error('❌ Firebase initialization error:', error);
+  console.warn('Using fallback mode. Please configure Firebase in .env file.');
 }
 
-// Initialisation
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-
-console.log('✅ Firebase initialisé:', firebaseConfig.projectId);
+export { auth, db };
