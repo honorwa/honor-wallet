@@ -15,7 +15,7 @@ import { Profile } from './components/Profile';
 import { BuyCrypto } from './components/BuyCrypto';
 import { Convert } from './components/Convert';
 import { SendCrypto } from './components/SendCrypto';
-import { AuthPage } from './components/AuthPage';
+import { AuthPage } from './components/AuthPageFirebase';
 import { Page, Asset, Transaction, CryptoOption, User, SupportTicket, KYCRequest } from './types';
 import { MOCK_TRANSACTIONS, AVAILABLE_CRYPTOS, MOCK_TICKETS } from './constants';
 import { Logo } from './components/Logo';

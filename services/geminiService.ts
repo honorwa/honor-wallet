@@ -17,9 +17,45 @@ export const geminiService = {
   }
 };
 
-// Pas de paramètre symbols - récupère tous les prix
 export async function fetchLivePrices(): Promise<Record<string, number>> {
   try {
+    console.log('Fetching live crypto prices from CoinGecko...');
+
+    const cryptoIds = 'bitcoin,ethereum,binancecoin,solana,cardano,ripple,polkadot,dogecoin,matic-network,chainlink';
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`CoinGecko API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    const prices = {
+      BTC: data.bitcoin?.usd || 43250.50,
+      ETH: data.ethereum?.usd || 2280.30,
+      BNB: data.binancecoin?.usd || 315.20,
+      SOL: data.solana?.usd || 98.45,
+      ADA: data.cardano?.usd || 0.52,
+      XRP: data.ripple?.usd || 0.61,
+      DOT: data.polkadot?.usd || 7.32,
+      DOGE: data.dogecoin?.usd || 0.089,
+      MATIC: data['matic-network']?.usd || 0.85,
+      LINK: data.chainlink?.usd || 14.67,
+    };
+
+    console.log('Live prices fetched:', prices);
+    return prices;
+  } catch (error) {
+    console.error("Error fetching live prices from CoinGecko:", error);
+    console.warn("Using fallback prices");
     return {
       BTC: 43250.50,
       ETH: 2280.30,
@@ -32,9 +68,6 @@ export async function fetchLivePrices(): Promise<Record<string, number>> {
       MATIC: 0.85,
       LINK: 14.67,
     };
-  } catch (error) {
-    console.error("Error fetching live prices:", error);
-    return {};
   }
 }
 
