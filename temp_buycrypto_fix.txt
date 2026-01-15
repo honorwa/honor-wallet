@@ -1,0 +1,12 @@
+// Ligne 47 environ - Remplacer
+const ai = new GoogleGenerativeAI({ apiKey: process.env.API_KEY });
+
+// Par
+const ai = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+
+// Ligne 61 environ - Remplacer
+const response = await ai.models.generateContent({
+
+// Par
+const model = ai.getGenerativeModel({ model: "gemini-pro" });
+const result = await model.generateContent({
