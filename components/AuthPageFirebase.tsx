@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { VideoLogoLarge, Logo } from './Logo';
-import { Lock, Mail, User, AlertCircle, RefreshCw, Globe, CheckCircle, Info } from 'lucide-react';
+import { Lock, Mail, User, AlertCircle, RefreshCw, Globe, CheckCircle, Info, Phone, MapPin, Calendar, Shield, ArrowRight, ArrowLeft } from 'lucide-react';
 import { firebaseAuthService } from '../services/authServiceFirebase';
+import { RecaptchaVerifier } from 'firebase/auth';
+import { auth } from '../services/firebase.config';
 
 interface AuthPageProps {
   onLogin: (user: any) => void;
@@ -16,9 +18,17 @@ const translations = {
     subtitle_signup: "Register for elite digital asset management.",
     email_label: "Email Address",
     pass_label: "Password",
-    name_label: "Full Name",
+    confirm_pass_label: "Confirm Password",
+    first_name_label: "First Name",
+    last_name_label: "Last Name",
+    phone_label: "Phone Number",
+    dob_label: "Date of Birth",
+    country_label: "Country",
+    address_label: "Address (Optional)",
     login_btn: "Access Wallet",
     signup_btn: "Create Account",
+    next_btn: "Next Step",
+    back_btn: "Back",
     or_continue: "Or continue with",
     google_btn: "Google",
     dont_have: "Don't have an account?",
@@ -28,6 +38,11 @@ const translations = {
     error_creds: "Invalid credentials",
     verification_sent: "Verification email sent! Please check your inbox.",
     check_spam: "Don't forget to check your spam folder.",
+    step_personal: "Personal Information",
+    step_contact: "Contact Details",
+    step_security: "Security",
+    password_mismatch: "Passwords do not match",
+    complete_captcha: "Please complete the reCAPTCHA verification",
   },
   fr: {
     welcome_back: "Accès Sécurisé",
@@ -36,9 +51,17 @@ const translations = {
     subtitle_signup: "Inscrivez-vous pour la gestion d'actifs.",
     email_label: "Adresse Email",
     pass_label: "Mot de passe",
-    name_label: "Nom complet",
+    confirm_pass_label: "Confirmer le mot de passe",
+    first_name_label: "Prénom",
+    last_name_label: "Nom",
+    phone_label: "Téléphone",
+    dob_label: "Date de naissance",
+    country_label: "Pays",
+    address_label: "Adresse (Optionnel)",
     login_btn: "Accéder au portefeuille",
     signup_btn: "Créer un compte",
+    next_btn: "Étape suivante",
+    back_btn: "Retour",
     or_continue: "Ou continuer avec",
     google_btn: "Google",
     dont_have: "Pas de compte ?",
@@ -48,6 +71,11 @@ const translations = {
     error_creds: "Identifiants invalides",
     verification_sent: "Email de vérification envoyé ! Consultez votre boîte.",
     check_spam: "N'oubliez pas de vérifier vos spams.",
+    step_personal: "Informations personnelles",
+    step_contact: "Coordonnées",
+    step_security: "Sécurité",
+    password_mismatch: "Les mots de passe ne correspondent pas",
+    complete_captcha: "Veuillez compléter la vérification reCAPTCHA",
   },
   es: {
     welcome_back: "Acceso Seguro",
@@ -56,9 +84,17 @@ const translations = {
     subtitle_signup: "Regístrese para gestión de activos.",
     email_label: "Correo electrónico",
     pass_label: "Contraseña",
-    name_label: "Nombre completo",
+    confirm_pass_label: "Confirmar contraseña",
+    first_name_label: "Nombre",
+    last_name_label: "Apellido",
+    phone_label: "Teléfono",
+    dob_label: "Fecha de nacimiento",
+    country_label: "País",
+    address_label: "Dirección (Opcional)",
     login_btn: "Acceder Billetera",
     signup_btn: "Crear cuenta",
+    next_btn: "Siguiente paso",
+    back_btn: "Atrás",
     or_continue: "O continuar con",
     google_btn: "Google",
     dont_have: "¿No tienes una cuenta?",
@@ -68,6 +104,11 @@ const translations = {
     error_creds: "Credenciales inválidas",
     verification_sent: "Correo de verificación enviado! Revisa tu bandeja.",
     check_spam: "No olvides revisar tu carpeta de spam.",
+    step_personal: "Información personal",
+    step_contact: "Detalles de contacto",
+    step_security: "Seguridad",
+    password_mismatch: "Las contraseñas no coinciden",
+    complete_captcha: "Por favor complete la verificación reCAPTCHA",
   },
   it: {
     welcome_back: "Accesso Sicuro",
@@ -76,9 +117,17 @@ const translations = {
     subtitle_signup: "Registrati per gestione asset.",
     email_label: "Indirizzo Email",
     pass_label: "Password",
-    name_label: "Nome completo",
+    confirm_pass_label: "Conferma password",
+    first_name_label: "Nome",
+    last_name_label: "Cognome",
+    phone_label: "Telefono",
+    dob_label: "Data di nascita",
+    country_label: "Paese",
+    address_label: "Indirizzo (Opzionale)",
     login_btn: "Accedi al Portafoglio",
     signup_btn: "Crea account",
+    next_btn: "Prossimo passo",
+    back_btn: "Indietro",
     or_continue: "O continua con",
     google_btn: "Google",
     dont_have: "Non hai un account?",
@@ -88,21 +137,67 @@ const translations = {
     error_creds: "Credenziali non valide",
     verification_sent: "Email di verifica inviata! Controlla la tua casella.",
     check_spam: "Non dimenticare di controllare la cartella spam.",
+    step_personal: "Informazioni personali",
+    step_contact: "Dettagli di contatto",
+    step_security: "Sicurezza",
+    password_mismatch: "Le password non corrispondono",
+    complete_captcha: "Si prega di completare la verifica reCAPTCHA",
   }
 };
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [registrationStep, setRegistrationStep] = useState(1);
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dob, setDob] = useState('');
+  const [country, setCountry] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [language, setLanguage] = useState<"en" | "fr" | "es" | "it">("en");
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+
+  const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   const t = translations[language];
+
+  useEffect(() => {
+    if (!isLogin && registrationStep === 3 && recaptchaContainerRef.current && !recaptchaRef.current) {
+      try {
+        recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'normal',
+          callback: () => {
+            setCaptchaVerified(true);
+            setError('');
+          },
+          'expired-callback': () => {
+            setCaptchaVerified(false);
+            setError('reCAPTCHA expired. Please verify again.');
+          }
+        });
+        recaptchaRef.current.render();
+      } catch (err) {
+        console.error('reCAPTCHA initialization error:', err);
+      }
+    }
+
+    return () => {
+      if (recaptchaRef.current) {
+        recaptchaRef.current.clear();
+        recaptchaRef.current = null;
+      }
+    };
+  }, [isLogin, registrationStep]);
 
   const handleGoogleLogin = async () => {
     setError('');
@@ -119,6 +214,36 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     }
   };
 
+  const handleNextStep = () => {
+    setError('');
+
+    if (registrationStep === 1) {
+      if (!firstName || !lastName) {
+        setError('Please fill in all required fields');
+        return;
+      }
+      setRegistrationStep(2);
+    } else if (registrationStep === 2) {
+      if (!email || !phone || !country) {
+        setError('Please fill in all required fields');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError('Please enter a valid email address');
+        return;
+      }
+      setRegistrationStep(3);
+    }
+  };
+
+  const handleBackStep = () => {
+    setError('');
+    if (registrationStep > 1) {
+      setRegistrationStep(registrationStep - 1);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -130,7 +255,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         const user = await firebaseAuthService.loginWithEmail(email, password);
         onLogin(user);
       } else {
-        if (!fullName) throw new Error("Name required");
+        if (!captchaVerified) {
+          setError(t.complete_captcha);
+          setLoading(false);
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setError(t.password_mismatch);
+          setLoading(false);
+          return;
+        }
+
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
+
+        const fullName = `${firstName} ${lastName}`;
         const result = await firebaseAuthService.registerWithEmail(fullName, email, password);
 
         if (result.needsVerification) {
@@ -146,6 +289,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       setError(err.message || t.error_creds);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setPhone('');
+    setDob('');
+    setCountry('');
+    setAddress('');
+    setPassword('');
+    setConfirmPassword('');
+    setRegistrationStep(1);
+    setError('');
+    setSuccess('');
+    setCaptchaVerified(false);
+    if (recaptchaRef.current) {
+      recaptchaRef.current.clear();
+      recaptchaRef.current = null;
     }
   };
 
@@ -205,54 +368,231 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                 <p className="text-[#D4AF37] text-xs font-bold uppercase tracking-widest">{isLogin ? t.subtitle_login : t.subtitle_signup}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {!isLogin && (
+            {!isLogin && registrationStep < 3 && (
+              <div className="flex gap-2 mb-6">
+                {[1, 2, 3].map((step) => (
+                  <div key={step} className="flex-1 h-1 rounded-full bg-zinc-800">
+                    <div className={`h-full rounded-full transition-all duration-300 ${registrationStep >= step ? 'bg-[#D4AF37]' : 'bg-zinc-800'}`} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={isLogin || registrationStep === 3 ? handleSubmit : (e) => { e.preventDefault(); handleNextStep(); }} className="space-y-6">
+                {isLogin ? (
+                  <>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.name_label}</label>
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.email_label}</label>
                         <div className="relative">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                             <input
-                                type="text"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
-                                placeholder="John Doe"
+                                placeholder="name@example.com"
                                 required
                             />
                         </div>
                     </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.pass_label}</label>
+                        <div className="relative">
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                placeholder="••••••••"
+                                required
+                                minLength={6}
+                            />
+                        </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {registrationStep === 1 && (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="flex items-center gap-2 mb-4">
+                          <User className="w-4 h-4 text-[#D4AF37]" />
+                          <h3 className="text-[#D4AF37] text-xs font-black uppercase tracking-widest">{t.step_personal}</h3>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.first_name_label}</label>
+                              <input
+                                  type="text"
+                                  value={firstName}
+                                  onChange={(e) => setFirstName(e.target.value)}
+                                  className="w-full bg-black border border-white/10 rounded-xl py-4 px-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                  placeholder="John"
+                                  required
+                              />
+                          </div>
+
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.last_name_label}</label>
+                              <input
+                                  type="text"
+                                  value={lastName}
+                                  onChange={(e) => setLastName(e.target.value)}
+                                  className="w-full bg-black border border-white/10 rounded-xl py-4 px-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                  placeholder="Doe"
+                                  required
+                              />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.dob_label}</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                <input
+                                    type="date"
+                                    value={dob}
+                                    onChange={(e) => setDob(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                />
+                            </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {registrationStep === 2 && (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Phone className="w-4 h-4 text-[#D4AF37]" />
+                          <h3 className="text-[#D4AF37] text-xs font-black uppercase tracking-widest">{t.step_contact}</h3>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.email_label}</label>
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                    placeholder="name@example.com"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.phone_label}</label>
+                            <div className="relative">
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                <input
+                                    type="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                    placeholder="+1 234 567 8900"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.country_label}</label>
+                            <div className="relative">
+                                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                <select
+                                    value={country}
+                                    onChange={(e) => setCountry(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all font-medium appearance-none cursor-pointer"
+                                    required
+                                >
+                                    <option value="" className="bg-zinc-900">Select Country</option>
+                                    <option value="US" className="bg-zinc-900">United States</option>
+                                    <option value="CA" className="bg-zinc-900">Canada</option>
+                                    <option value="GB" className="bg-zinc-900">United Kingdom</option>
+                                    <option value="FR" className="bg-zinc-900">France</option>
+                                    <option value="DE" className="bg-zinc-900">Germany</option>
+                                    <option value="ES" className="bg-zinc-900">Spain</option>
+                                    <option value="IT" className="bg-zinc-900">Italy</option>
+                                    <option value="AU" className="bg-zinc-900">Australia</option>
+                                    <option value="JP" className="bg-zinc-900">Japan</option>
+                                    <option value="CN" className="bg-zinc-900">China</option>
+                                    <option value="IN" className="bg-zinc-900">India</option>
+                                    <option value="BR" className="bg-zinc-900">Brazil</option>
+                                    <option value="MX" className="bg-zinc-900">Mexico</option>
+                                    <option value="CH" className="bg-zinc-900">Switzerland</option>
+                                    <option value="OTHER" className="bg-zinc-900">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.address_label}</label>
+                            <textarea
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                className="w-full bg-black border border-white/10 rounded-xl py-4 px-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium resize-none"
+                                placeholder="Street address, city, postal code..."
+                                rows={3}
+                            />
+                        </div>
+                      </div>
+                    )}
+
+                    {registrationStep === 3 && (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Shield className="w-4 h-4 text-[#D4AF37]" />
+                          <h3 className="text-[#D4AF37] text-xs font-black uppercase tracking-widest">{t.step_security}</h3>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.pass_label}</label>
+                            <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                    placeholder="••••••••"
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.confirm_pass_label}</label>
+                            <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                <input
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
+                                    placeholder="••••••••"
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4">
+                          <div id="recaptcha-container" ref={recaptchaContainerRef}></div>
+                        </div>
+
+                        <div className="flex items-start gap-2 bg-blue-500/10 text-blue-400 p-3 rounded-lg text-xs border border-blue-500/20">
+                            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>You'll receive an email verification link after registration.</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
-
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.email_label}</label>
-                    <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
-                            placeholder="name@example.com"
-                            required
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{t.pass_label}</label>
-                    <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-black border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#D4AF37] transition-all placeholder:text-zinc-800 font-medium"
-                            placeholder="••••••••"
-                            required
-                            minLength={6}
-                        />
-                    </div>
-                </div>
 
                 {error && (
                     <div className="flex items-center gap-2 bg-red-500/10 text-red-500 p-3 rounded-lg text-xs font-bold border border-red-500/20 animate-in fade-in slide-in-from-top-2">
@@ -267,20 +607,34 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                     </div>
                 )}
 
-                {!isLogin && (
-                    <div className="flex items-start gap-2 bg-blue-500/10 text-blue-400 p-3 rounded-lg text-xs border border-blue-500/20">
-                        <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                        <span>You'll receive an email verification link after registration.</span>
-                    </div>
+                {isLogin ? (
+                  <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-[#D4AF37] hover:bg-[#FFD700] text-black font-black py-4 rounded-xl transition-all uppercase tracking-widest text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  >
+                      {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : t.login_btn}
+                  </button>
+                ) : (
+                  <div className="flex gap-3">
+                    {registrationStep > 1 && (
+                      <button
+                          type="button"
+                          onClick={handleBackStep}
+                          className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-95"
+                      >
+                          <ArrowLeft className="w-4 h-4" /> {t.back_btn}
+                      </button>
+                    )}
+                    <button
+                        type="submit"
+                        disabled={loading || (registrationStep === 3 && !captchaVerified)}
+                        className="flex-1 bg-[#D4AF37] hover:bg-[#FFD700] disabled:opacity-50 disabled:cursor-not-allowed text-black font-black py-4 rounded-xl transition-all uppercase tracking-widest text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center justify-center gap-2 active:scale-95"
+                    >
+                        {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : registrationStep < 3 ? <>{t.next_btn} <ArrowRight className="w-4 h-4" /></> : t.signup_btn}
+                    </button>
+                  </div>
                 )}
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-[#D4AF37] hover:bg-[#FFD700] text-black font-black py-4 rounded-xl transition-all uppercase tracking-widest text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-                >
-                    {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : (isLogin ? t.login_btn : t.signup_btn)}
-                </button>
             </form>
 
             <div className="relative my-6">
@@ -303,7 +657,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             <div className="text-center pt-4">
                 <p className="text-zinc-500 text-xs">
                     {isLogin ? t.dont_have : t.already_have} {' '}
-                    <button onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }} className="text-[#D4AF37] font-bold hover:underline">
+                    <button onClick={() => { setIsLogin(!isLogin); resetForm(); }} className="text-[#D4AF37] font-bold hover:underline">
                         {isLogin ? t.register_now : t.login_now}
                     </button>
                 </p>
