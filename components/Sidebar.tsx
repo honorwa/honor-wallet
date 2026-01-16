@@ -2,18 +2,19 @@
 import React from 'react';
 import { Page } from '../types';
 import { Logo } from './Logo';
-import { 
-  LayoutDashboard, 
-  Wallet, 
-  ArrowLeftRight, 
-  Headphones, 
+import {
+  LayoutDashboard,
+  Wallet,
+  ArrowLeftRight,
+  Headphones,
   User as UserIcon,
-  Shield, 
-  Users, 
-  LogOut, 
+  Shield,
+  Users,
+  LogOut,
   Globe,
   Bot,
-  Send
+  Send,
+  ShoppingCart
 } from 'lucide-react';
 
 const translations = {
@@ -22,6 +23,7 @@ const translations = {
     wallets: "Wallets",
     convert: "Exchange",
     send: "Transfer",
+    buy: "Buy Crypto",
     ai_advisor: "Honor Analyst",
     support: "Support",
     profile: "Security",
@@ -34,6 +36,7 @@ const translations = {
     wallets: "Portefeuilles",
     convert: "Échange",
     send: "Transfert",
+    buy: "Acheter Crypto",
     ai_advisor: "Analyste IA",
     support: "Support",
     profile: "Sécurité",
@@ -46,6 +49,7 @@ const translations = {
     wallets: "Billeteras",
     convert: "Intercambio",
     send: "Transferir",
+    buy: "Comprar Crypto",
     ai_advisor: "Analista IA",
     support: "Soporte",
     profile: "Seguridad",
@@ -58,6 +62,7 @@ const translations = {
     wallets: "Portafogli",
     convert: "Scambio",
     send: "Trasferimento",
+    buy: "Acquista Crypto",
     ai_advisor: "Analista IA",
     support: "Supporto",
     profile: "Sicurezza",
@@ -74,30 +79,32 @@ interface SidebarProps {
   setPage: (page: Page) => void;
   language: "en" | "fr" | "es" | "it";
   setLanguage: (lang: "en" | "fr" | "es" | "it") => void;
-  user?: { full_name: string; email: string; role: string };
+  user?: { full_name: string; email: string; role: string; buy_access?: boolean };
   onLogout?: () => void;
   theme: 'dark' | 'light';
   setTheme: (theme: 'dark' | 'light') => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
-  isOpen, 
-  setIsOpen, 
-  currentPage, 
-  setPage, 
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  setIsOpen,
+  currentPage,
+  setPage,
   language,
   setLanguage,
   user = { full_name: "Honor Member", email: "alex@honor.com", role: "admin" },
   onLogout
 }) => {
   const t = translations[language] || translations.en;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const hasBuyAccess = isAdmin || user?.buy_access === true;
 
   const userNavItems = [
     { page: Page.DASHBOARD, label: t.dashboard, icon: LayoutDashboard },
     { page: Page.PORTFOLIO, label: t.wallets, icon: Wallet },
     { page: Page.SEND, label: t.send, icon: Send },
     { page: Page.CONVERT, label: t.convert, icon: ArrowLeftRight },
+    ...(hasBuyAccess ? [{ page: Page.BUY, label: t.buy, icon: ShoppingCart }] : []),
     { page: Page.AI_ADVISOR, label: t.ai_advisor, icon: Bot },
     { page: Page.SUPPORT, label: t.support, icon: Headphones },
     { page: Page.PROFILE, label: t.profile, icon: UserIcon },

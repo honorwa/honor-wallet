@@ -65,15 +65,16 @@ export interface User {
   id: string;
   full_name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'super_admin' | 'admin' | 'user';
   join_date: string;
   status: 'active' | 'suspended' | 'on_hold';
   verified: boolean;
   email_verified: boolean;
   phone?: string;
   password?: string;
-  fee_percentage?: number; // Custom fee per user
+  fee_percentage?: number;
   kyc_status?: 'none' | 'pending' | 'verified' | 'rejected';
+  buy_access?: boolean;
 }
 
 export interface SupportTicket {

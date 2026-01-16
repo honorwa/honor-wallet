@@ -38,10 +38,11 @@ export class FirebaseAuthService {
         email: email,
         role: 'user',
         kyc_status: 'none',
-        status: 'active',
+        status: 'on_hold',
         verified: false,
         email_verified: false,
         join_date: new Date().toISOString(),
+        buy_access: false,
       };
 
       console.log('User registered successfully. Email verification sent to:', email);
@@ -84,10 +85,11 @@ export class FirebaseAuthService {
         email: firebaseUser.email || email,
         role: 'user',
         kyc_status: 'none',
-        status: 'active',
+        status: 'on_hold',
         verified: firebaseUser.emailVerified,
         email_verified: firebaseUser.emailVerified,
         join_date: new Date().toISOString(),
+        buy_access: false,
       };
 
       console.log('User logged in successfully:', user.email);
@@ -119,10 +121,11 @@ export class FirebaseAuthService {
         email: firebaseUser.email || '',
         role: 'user',
         kyc_status: 'none',
-        status: 'active',
+        status: 'on_hold',
         verified: true,
         email_verified: true,
         join_date: new Date().toISOString(),
+        buy_access: false,
       };
 
       console.log('Google sign-in successful:', user.email);
@@ -166,10 +169,11 @@ export class FirebaseAuthService {
           email: firebaseUser.email || '',
           role: 'user',
           kyc_status: 'none',
-          status: 'active',
+          status: 'on_hold',
           verified: firebaseUser.emailVerified,
           email_verified: firebaseUser.emailVerified,
           join_date: new Date().toISOString(),
+          buy_access: false,
         };
         callback(user);
       } else {

@@ -10,9 +10,10 @@ interface AdminUsersProps {
   onUpdateUser: (id: string, updates: Partial<User>) => void;
   assets: Asset[];
   onUpdateUserAsset: (userId: string, assetId: string, amount: number) => void;
+  currentUserRole?: 'super_admin' | 'admin' | 'user';
 }
 
-export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, assets, onUpdateUserAsset }) => {
+export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, assets, onUpdateUserAsset, currentUserRole = 'admin' }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingWalletsFor, setEditingWalletsFor] = useState<User | null>(null);
@@ -25,11 +26,12 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {editingUser && (
-        <EditUserDialog 
-            isOpen={true} 
-            user={editingUser} 
-            onClose={() => setEditingUser(null)} 
+        <EditUserDialog
+            isOpen={true}
+            user={editingUser}
+            onClose={() => setEditingUser(null)}
             onUpdateUser={onUpdateUser}
+            currentAdminRole={currentUserRole}
         />
       )}
 
@@ -80,17 +82,26 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
               </div>
 
               <div className="flex flex-wrap gap-2 items-center">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${u.role === 'admin' ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-400"}`}>
-                    {u.role}
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                        u.role === 'super_admin' ? "bg-purple-500/10 text-purple-400" :
+                        u.role === 'admin' ? "bg-amber-500/10 text-amber-500" :
+                        "bg-blue-500/10 text-blue-400"
+                    }`}>
+                    {u.role.replace('_', ' ')}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
-                        u.status === 'active' ? "bg-emerald-500/10 text-emerald-400" : 
-                        u.status === 'on_hold' ? "bg-amber-500/10 text-amber-500" : 
+                        u.status === 'active' ? "bg-emerald-500/10 text-emerald-400" :
+                        u.status === 'on_hold' ? "bg-amber-500/10 text-amber-500" :
                         "bg-red-500/10 text-red-400"
                     }`}>
                     {u.status === 'on_hold' && <AlertTriangle size={10} />}
                     {u.status.replace('_', ' ')}
                     </span>
+                    {u.buy_access && (
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#D4AF37]/10 text-[#D4AF37]">
+                            Buy Access
+                        </span>
+                    )}
               </div>
 
               <div className="flex gap-2 w-full md:w-auto">

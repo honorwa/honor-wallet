@@ -186,11 +186,14 @@ function App() {
           const updatedUsers = users.map(u => u.id === id ? { ...u, ...updates } : u);
           setUsers(updatedUsers);
           localStorage.setItem("honor_users", JSON.stringify(updatedUsers));
+          if (id === currentUser?.id && updates.role) {
+              setCurrentUser({ ...currentUser, ...updates });
+          }
       }} assets={assets} onUpdateUserAsset={(uid, aid, amt) => {
           const userAssets = authService.getUserAssets(uid);
           const updated = userAssets.map(a => a.id === aid ? { ...a, balance: amt, value: amt * a.price } : a);
           authService.updateUserAssets(uid, updated);
-      }} />;
+      }} currentUserRole={currentUser?.role} />;
       case Page.PROFILE: return <Profile user={currentUser!} onSubmitKYC={handleKycSubmit} />;
       
       case Page.SEND: return <SendCrypto assets={assets} onSend={(sym, amt, addr) => {
@@ -233,14 +236,31 @@ function App() {
            });
       }} />;
 
-      case Page.SUPPORT: return <Support 
-        tickets={tickets.filter(t => t.user_email === currentUser?.email)} 
-        userEmail={currentUser!.email} 
+      case Page.BUY: return <BuyCrypto onBuy={(amount, crypto, fee, method, provider) => {
+          if (!checkRestriction()) return;
+          const asset = assets.find(a => a.symbol === crypto.symbol);
+          if (asset) {
+              handleUpdateAsset(asset.id, asset.balance + amount);
+              handleTransaction({
+                  id: `tx_${Date.now()}`,
+                  type: 'buy',
+                  asset: crypto.symbol,
+                  amount: amount,
+                  date: new Date().toISOString(),
+                  status: 'completed',
+                  description: `Bought ${amount} ${crypto.symbol} via ${provider || method}`
+              });
+          }
+      }} onNavigate={setCurrentPage} />;
+
+      case Page.SUPPORT: return <Support
+        tickets={tickets.filter(t => t.user_email === currentUser?.email)}
+        userEmail={currentUser!.email}
         onCreateTicket={(t) => setTickets(prev => [...prev, { ...t, id: `t_${Date.now()}`, created_at: new Date().toISOString() }])}
       />;
 
       case Page.ADMIN_SUPPORT: return <AdminSupport tickets={tickets} onUpdateTicket={(id, updates) => setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))} />;
-      
+
       default: return <Dashboard assets={assets} transactions={transactions} onNavigate={setCurrentPage} user={currentUser!} marketPrices={marketPrices} />;
     }
   };

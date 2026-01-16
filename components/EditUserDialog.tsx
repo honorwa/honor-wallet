@@ -1,32 +1,38 @@
 
 import React, { useState } from "react";
 import { User } from "../types";
-import { X, Shield, AlertTriangle, DollarSign } from "lucide-react";
+import { X, Shield, AlertTriangle, DollarSign, ShoppingCart, Crown } from "lucide-react";
 
 interface EditUserDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: User;
   onUpdateUser: (id: string, updates: Partial<User>) => void;
+  currentAdminRole?: 'super_admin' | 'admin' | 'user';
 }
 
-export const EditUserDialog: React.FC<EditUserDialogProps> = ({ 
-  isOpen, 
-  onClose, 
+export const EditUserDialog: React.FC<EditUserDialogProps> = ({
+  isOpen,
+  onClose,
   user,
-  onUpdateUser
+  onUpdateUser,
+  currentAdminRole = 'admin'
 }) => {
   const [status, setStatus] = useState<'active' | 'suspended' | 'on_hold'>(user.status || 'active');
   const [isVerified, setIsVerified] = useState<boolean>(user.verified || false);
   const [fee, setFee] = useState<string>(user.fee_percentage?.toString() || '0');
+  const [buyAccess, setBuyAccess] = useState<boolean>(user.buy_access || false);
+  const [role, setRole] = useState<'super_admin' | 'admin' | 'user'>(user.role || 'user');
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    onUpdateUser(user.id, { 
-        status, 
+    onUpdateUser(user.id, {
+        status,
         verified: isVerified,
-        fee_percentage: parseFloat(fee)
+        fee_percentage: parseFloat(fee),
+        buy_access: buyAccess,
+        ...(currentAdminRole === 'super_admin' ? { role } : {})
     });
     onClose();
   };
@@ -105,8 +111,27 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({
              )}
 
              <div>
+                <label className="text-sm font-medium text-slate-300 mb-2 block">Buy Crypto Access</label>
+                <div
+                    onClick={() => setBuyAccess(!buyAccess)}
+                    className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between ${buyAccess ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-[#0B0E14] border-white/10'}`}
+                >
+                    <div className="flex items-center gap-3">
+                        <ShoppingCart className={`w-5 h-5 ${buyAccess ? 'text-[#D4AF37]' : 'text-slate-500'}`} />
+                        <span className={buyAccess ? 'text-[#D4AF37]' : 'text-slate-400'}>
+                            {buyAccess ? 'Buy Page Enabled' : 'Buy Page Disabled'}
+                        </span>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${buyAccess ? 'bg-[#D4AF37] border-[#D4AF37]' : 'border-slate-500'}`}>
+                        {buyAccess && <div className="w-2 h-2 bg-black rounded-full"></div>}
+                    </div>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">Allow user to access Buy Crypto page</p>
+             </div>
+
+             <div>
                 <label className="text-sm font-medium text-slate-300 mb-2 block">Verification Level</label>
-                <div 
+                <div
                     onClick={() => setIsVerified(!isVerified)}
                     className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between ${isVerified ? 'bg-blue-500/10 border-blue-500' : 'bg-[#0B0E14] border-white/10'}`}
                 >
@@ -121,6 +146,37 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     </div>
                 </div>
              </div>
+
+             {currentAdminRole === 'super_admin' && (
+                <div>
+                    <label className="text-sm font-medium text-slate-300 mb-2 block flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-amber-500" />
+                        User Role
+                        <span className="text-[10px] text-amber-500 font-normal">(Super Admin Only)</span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                        <button
+                            onClick={() => setRole('user')}
+                            className={`py-2 rounded-lg border text-xs font-bold uppercase tracking-wider ${role === 'user' ? 'bg-blue-500/10 border-blue-500 text-blue-400' : 'border-white/10 text-slate-400'}`}
+                        >
+                            User
+                        </button>
+                        <button
+                            onClick={() => setRole('admin')}
+                            className={`py-2 rounded-lg border text-xs font-bold uppercase tracking-wider ${role === 'admin' ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'border-white/10 text-slate-400'}`}
+                        >
+                            Admin
+                        </button>
+                        <button
+                            onClick={() => setRole('super_admin')}
+                            className={`py-2 rounded-lg border text-xs font-bold uppercase tracking-wider ${role === 'super_admin' ? 'bg-purple-500/10 border-purple-500 text-purple-400' : 'border-white/10 text-slate-400'}`}
+                        >
+                            Super Admin
+                        </button>
+                    </div>
+                    <p className="text-[10px] text-amber-500 mt-2">Only Super Admins can create/remove other admins</p>
+                </div>
+             )}
           </div>
 
           <button 
