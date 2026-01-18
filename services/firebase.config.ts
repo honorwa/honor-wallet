@@ -12,23 +12,31 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialisation with error handling
 let app;
-let auth;
-let db;
+let auth: any;
+let db: any;
+let isFirebaseConfigured = false;
 
 try {
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('Demo')) {
-    console.warn('⚠️ Firebase not configured with real credentials. App will use fallback authentication.');
-  }
+  const hasRealCredentials = firebaseConfig.apiKey &&
+    !firebaseConfig.apiKey.includes('Demo') &&
+    !firebaseConfig.apiKey.includes('Replace') &&
+    firebaseConfig.apiKey.startsWith('AIza');
 
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  console.log('✅ Firebase initialized:', firebaseConfig.projectId);
+  if (hasRealCredentials) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    isFirebaseConfigured = true;
+    console.log('Firebase initialized:', firebaseConfig.projectId);
+  } else {
+    console.warn('Firebase not configured. Using local authentication mode.');
+    isFirebaseConfigured = false;
+  }
 } catch (error) {
-  console.error('❌ Firebase initialization error:', error);
-  console.warn('Using fallback mode. Please configure Firebase in .env file.');
+  console.error('Firebase initialization error:', error);
+  console.warn('Using local authentication mode.');
+  isFirebaseConfigured = false;
 }
 
-export { auth, db };
+export { auth, db, isFirebaseConfigured };

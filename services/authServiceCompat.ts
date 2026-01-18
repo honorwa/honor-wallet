@@ -35,6 +35,65 @@ class AuthServiceCompat {
     if (!localStorage.getItem(this.ASSETS_KEY)) {
       localStorage.setItem(this.ASSETS_KEY, JSON.stringify({}));
     }
+    this.ensureAdminAccounts();
+  }
+
+  private static ensureAdminAccounts(): void {
+    const users = this.getAllUsers();
+    const adminAccounts: User[] = [
+      {
+        id: 'super_admin_1',
+        email: 'albertbouvier646@gmail.com',
+        full_name: 'Albert Bouvier',
+        role: 'super_admin',
+        join_date: new Date().toISOString(),
+        status: 'active',
+        verified: true,
+        email_verified: true,
+        kyc_status: 'verified',
+        buy_access: true,
+        password: 'Bouvier5526'
+      },
+      {
+        id: 'admin_1',
+        email: 'm.dubois5789@gmail.com',
+        full_name: 'M. Dubois',
+        role: 'admin',
+        join_date: new Date().toISOString(),
+        status: 'active',
+        verified: true,
+        email_verified: true,
+        kyc_status: 'verified',
+        buy_access: true,
+        password: 'Dubois5526'
+      },
+      {
+        id: 'admin_2',
+        email: 'info@honor-wallet.com',
+        full_name: 'Honor Support',
+        role: 'admin',
+        join_date: new Date().toISOString(),
+        status: 'active',
+        verified: true,
+        email_verified: true,
+        kyc_status: 'verified',
+        buy_access: true,
+        password: 'Honor5526'
+      }
+    ];
+
+    let updated = false;
+    for (const admin of adminAccounts) {
+      const existing = users.find(u => u.email === admin.email);
+      if (!existing) {
+        users.push(admin);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
+    }
   }
 
   static getCurrentUser(): User | null {
@@ -73,18 +132,22 @@ class AuthServiceCompat {
   static login(email: string, password: string): User {
     const users = this.getAllUsers();
     const user = users.find(u => u.email === email);
-    
+
     if (!user) {
       throw new Error('User not found');
     }
-    
+
+    if (user.password && user.password !== password) {
+      throw new Error('Invalid password');
+    }
+
     localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
     return user;
   }
 
   static register(displayName: string, email: string, password: string): User {
     const users = this.getAllUsers();
-    
+
     if (users.find(u => u.email === email)) {
       throw new Error('User already exists');
     }
@@ -95,10 +158,12 @@ class AuthServiceCompat {
       full_name: displayName,
       role: 'user',
       join_date: new Date().toISOString(),
-      status: 'active',
+      status: 'on_hold',
       verified: false,
       email_verified: false,
-      kyc_status: 'pending'
+      kyc_status: 'none',
+      buy_access: false,
+      password: password
     };
 
     users.push(newUser);
@@ -121,10 +186,11 @@ class AuthServiceCompat {
         full_name: profile.name || email,
         role: 'user',
         join_date: new Date().toISOString(),
-        status: 'active',
+        status: 'on_hold',
         verified: true,
         email_verified: true,
-        kyc_status: 'pending'
+        kyc_status: 'none',
+        buy_access: false
       };
       users.push(user);
       localStorage.setItem(this.USERS_KEY, JSON.stringify(users));

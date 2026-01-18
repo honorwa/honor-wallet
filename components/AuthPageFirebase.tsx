@@ -3,8 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { VideoLogoLarge, Logo } from './Logo';
 import { Lock, Mail, User, AlertCircle, RefreshCw, Globe, CheckCircle, Info, Phone, MapPin, Calendar, Shield, ArrowRight, ArrowLeft } from 'lucide-react';
 import { firebaseAuthService } from '../services/authServiceFirebase';
+import { authService } from '../services/authServiceCompat';
 import { RecaptchaVerifier } from 'firebase/auth';
-import { auth } from '../services/firebase.config';
+import { auth, isFirebaseConfigured } from '../services/firebase.config';
 
 interface AuthPageProps {
   onLogin: (user: any) => void;
@@ -172,7 +173,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const t = translations[language];
 
   useEffect(() => {
-    if (!isLogin && registrationStep === 3 && recaptchaContainerRef.current && !recaptchaRef.current) {
+    if (!isFirebaseConfigured) {
+      setCaptchaVerified(true);
+      return;
+    }
+
+    if (!isLogin && registrationStep === 3 && recaptchaContainerRef.current && !recaptchaRef.current && auth) {
       try {
         recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'normal',
@@ -188,6 +194,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         recaptchaRef.current.render();
       } catch (err) {
         console.error('reCAPTCHA initialization error:', err);
+        setCaptchaVerified(true);
       }
     }
 
@@ -205,8 +212,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const user = await firebaseAuthService.loginWithGoogle();
-      onLogin(user);
+      if (isFirebaseConfigured) {
+        const user = await firebaseAuthService.loginWithGoogle();
+        onLogin(user);
+      } else {
+        setError('Google sign-in requires Firebase configuration. Please use email/password.');
+      }
     } catch (err: any) {
       setError(err.message || 'Google sign-in failed');
     } finally {
@@ -251,38 +262,64 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const user = await firebaseAuthService.loginWithEmail(email, password);
-        onLogin(user);
-      } else {
-        if (!captchaVerified) {
-          setError(t.complete_captcha);
-          setLoading(false);
-          return;
-        }
-
-        if (password !== confirmPassword) {
-          setError(t.password_mismatch);
-          setLoading(false);
-          return;
-        }
-
-        if (password.length < 6) {
-          setError('Password must be at least 6 characters');
-          setLoading(false);
-          return;
-        }
-
-        const fullName = `${firstName} ${lastName}`;
-        const result = await firebaseAuthService.registerWithEmail(fullName, email, password);
-
-        if (result.needsVerification) {
-          setSuccess(t.verification_sent + ' ' + t.check_spam);
-          setTimeout(() => {
-            onLogin(result.user);
-          }, 3000);
+      if (isFirebaseConfigured) {
+        if (isLogin) {
+          const user = await firebaseAuthService.loginWithEmail(email, password);
+          onLogin(user);
         } else {
-          onLogin(result.user);
+          if (!captchaVerified) {
+            setError(t.complete_captcha);
+            setLoading(false);
+            return;
+          }
+
+          if (password !== confirmPassword) {
+            setError(t.password_mismatch);
+            setLoading(false);
+            return;
+          }
+
+          if (password.length < 6) {
+            setError('Password must be at least 6 characters');
+            setLoading(false);
+            return;
+          }
+
+          const fullName = `${firstName} ${lastName}`;
+          const result = await firebaseAuthService.registerWithEmail(fullName, email, password);
+
+          if (result.needsVerification) {
+            setSuccess(t.verification_sent + ' ' + t.check_spam);
+            setTimeout(() => {
+              onLogin(result.user);
+            }, 3000);
+          } else {
+            onLogin(result.user);
+          }
+        }
+      } else {
+        if (isLogin) {
+          const user = authService.login(email, password);
+          onLogin(user);
+        } else {
+          if (password !== confirmPassword) {
+            setError(t.password_mismatch);
+            setLoading(false);
+            return;
+          }
+
+          if (password.length < 6) {
+            setError('Password must be at least 6 characters');
+            setLoading(false);
+            return;
+          }
+
+          const fullName = `${firstName} ${lastName}`;
+          const user = authService.register(fullName, email, password);
+          setSuccess('Account created! Your account is pending approval.');
+          setTimeout(() => {
+            onLogin(user);
+          }, 2000);
         }
       }
     } catch (err: any) {
