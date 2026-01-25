@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { SupportTicket } from "../types";
 import { MessageSquare, Send, User } from "lucide-react";
+import { emailService } from "../services/emailService";
 
 interface SupportProps {
   tickets: SupportTicket[];
@@ -20,10 +21,21 @@ export const Support: React.FC<SupportProps> = ({ tickets, onCreateTicket, userE
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !subject.trim()) return;
     
+    // Create new ticket object locally for notification
+    const newTicketStub: any = {
+      id: Date.now().toString(),
+      user_email: userEmail,
+      subject,
+      message,
+      status: 'open',
+      priority: 'medium',
+      created_at: new Date().toISOString()
+    };
+
     onCreateTicket({
       user_email: userEmail,
       subject,
@@ -31,6 +43,9 @@ export const Support: React.FC<SupportProps> = ({ tickets, onCreateTicket, userE
       status: 'open',
       priority: 'medium'
     });
+
+    // Send notification
+    await emailService.sendNewTicketNotification(newTicketStub);
 
     setMessage("");
     setSubject("");

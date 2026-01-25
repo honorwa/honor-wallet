@@ -1,11 +1,12 @@
-
-import React, { useState } from "react";
-import { TrendingUp, ChevronDown, Plus, ExternalLink } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { TrendingUp, ChevronDown, Plus } from "lucide-react";
 import { AVAILABLE_CRYPTOS } from "../constants";
+import { authService } from "../services/authServiceCompat";
+import { User } from "../types";
 
 interface LiveRatesProps {
-    marketPrices: Record<string, number>;
-    language?: "en" | "fr" | "es" | "it";
+  marketPrices: Record<string, number>;
+  language: "en" | "fr" | "es" | "it";
 }
 
 const translations = {
@@ -15,28 +16,65 @@ const translations = {
     it: { title: "Mercato Live", lastSync: "Feed in tempo reale", sources: "Fonti" }
 };
 
+// Mock conversion rate - In production fetch this from API
+const USD_TO_EUR = 0.92;
+
 export const LiveRates: React.FC<LiveRatesProps> = ({ marketPrices, language = "en" }) => {
-  const [baseCurrency, setBaseCurrency] = useState("USD");
+  const [user, setUser] = useState<User | null>(null);
+  const [baseCurrency, setBaseCurrency] = useState<"USD" | "EUR">("USD");
   const [displayedAssets, setDisplayedAssets] = useState(['BTC', 'ETH', 'SOL']);
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
   const [showAssetMenu, setShowAssetMenu] = useState(false);
 
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+        setUser(currentUser);
+        if (currentUser.preferred_currency) setBaseCurrency(currentUser.preferred_currency);
+        if (currentUser.market_watchlist && currentUser.market_watchlist.length > 0) {
+            setDisplayedAssets(currentUser.market_watchlist);
+        }
+    }
+  }, []);
+
+  const updatePreferences = (currency: "USD" | "EUR", assets: string[]) => {
+      if (user) {
+          const updates = { preferred_currency: currency, market_watchlist: assets };
+          authService.updateUser(user.id, updates);
+      }
+  };
+
+  const handleCurrencyChange = (currency: "USD" | "EUR") => {
+      setBaseCurrency(currency);
+      setShowCurrencyMenu(false);
+      updatePreferences(currency, displayedAssets);
+  };
+
   const t = translations[language] || translations.en;
 
-  const formatPrice = (price: number | undefined) => {
-    if (!price) return "...";
-    return new Intl.NumberFormat('en-US', {
+  const formatPrice = (priceUSD: number | undefined) => {
+    if (!priceUSD) return "...";
+    
+    let displayPrice = priceUSD;
+    if (baseCurrency === 'EUR') {
+        displayPrice = priceUSD * USD_TO_EUR;
+    }
+
+    return new Intl.NumberFormat(language === 'en' ? 'en-US' : 'de-DE', {
       style: 'currency',
       currency: baseCurrency
-    }).format(price);
+    }).format(displayPrice);
   };
 
   const toggleAsset = (symbol: string) => {
+      let newAssets = [...displayedAssets];
       if (displayedAssets.includes(symbol)) {
-          if (displayedAssets.length > 1) setDisplayedAssets(prev => prev.filter(s => s !== symbol));
+          if (displayedAssets.length > 1) newAssets = displayedAssets.filter(s => s !== symbol);
       } else {
-          if (displayedAssets.length < 5) setDisplayedAssets(prev => [...prev, symbol]);
+          if (displayedAssets.length < 5) newAssets = [...displayedAssets, symbol];
       }
+      setDisplayedAssets(newAssets);
+      updatePreferences(baseCurrency, newAssets);
   };
 
   return (
@@ -58,13 +96,10 @@ export const LiveRates: React.FC<LiveRatesProps> = ({ marketPrices, language = "
             </button>
             {showCurrencyMenu && (
               <div className="absolute right-0 top-full mt-1 w-20 bg-black border border-[#D4AF37]/20 rounded-lg shadow-xl overflow-hidden z-20">
-                {["USD"].map(c => (
+                {["USD", "EUR"].map(c => (
                   <button
                     key={c}
-                    onClick={() => {
-                      setBaseCurrency(c);
-                      setShowCurrencyMenu(false);
-                    }}
+                    onClick={() => handleCurrencyChange(c as "USD" | "EUR")}
                     className="w-full text-left px-3 py-2 text-[10px] font-bold text-zinc-400 hover:bg-[#D4AF37]/10 hover:text-[#D4AF37]"
                   >
                     {c}
@@ -119,12 +154,13 @@ export const LiveRates: React.FC<LiveRatesProps> = ({ marketPrices, language = "
                                 {symbol[0]}
                             </div>
                             <div>
-                                <p className="font-black text-white uppercase tracking-wider text-xs">{coinInfo?.name || symbol}</p>
+                                <h4 className="text-white font-bold text-xs">{coinInfo?.name}</h4>
+                                <span className="text-[10px] text-zinc-500 font-bold">{symbol}</span>
                             </div>
                         </div>
-                        <p className="text-sm font-black text-white tracking-tight group-hover:text-[#D4AF37] transition-colors">
-                            {formatPrice(price)}
-                        </p>
+                        <div className="text-right">
+                            <p className="text-white font-black text-sm tracking-tight">{formatPrice(price)}</p>
+                        </div>
                     </div>
                 </div>
             )

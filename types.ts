@@ -75,6 +75,9 @@ export interface User {
   fee_percentage?: number;
   kyc_status?: 'none' | 'pending' | 'verified' | 'rejected';
   buy_access?: boolean;
+  preferred_currency?: 'USD' | 'EUR';
+  market_watchlist?: string[];
+  wallet_number?: string;
 }
 
 export interface SupportTicket {

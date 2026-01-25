@@ -163,13 +163,42 @@ class AuthServiceCompat {
       email_verified: false,
       kyc_status: 'none',
       buy_access: false,
-      password: password
+      password: password,
+      wallet_number: Math.floor(100000000 + Math.random() * 900000000).toString(), // 9-digit random number
     };
 
     users.push(newUser);
     localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
     localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(newUser));
-    this.updateUserAssets(newUser.id, []);
+    
+    // Auto-create default wallets (BTC & ETH)
+    const defaultAssets: Asset[] = [
+      {
+        id: 'bitcoin',
+        name: 'Bitcoin',
+        symbol: 'BTC',
+        balance: 0,
+        price: 0, // Will be updated by dashboard
+        change24h: 0,
+        value: 0,
+        color: '#F7931A',
+        wallet_address: `bc1${Math.random().toString(36).substring(7)}`,
+        is_enabled: true
+      },
+      {
+        id: 'ethereum',
+        name: 'Ethereum',
+        symbol: 'ETH',
+        balance: 0,
+        price: 0,
+        change24h: 0,
+        value: 0,
+        color: '#627EEA',
+        wallet_address: `0x${Math.random().toString(36).substring(7)}`,
+        is_enabled: true
+      }
+    ];
+    this.updateUserAssets(newUser.id, defaultAssets);
 
     return newUser;
   }
@@ -190,11 +219,45 @@ class AuthServiceCompat {
         verified: true,
         email_verified: true,
         kyc_status: 'none',
-        buy_access: false
+        buy_access: false,
+        wallet_number: Math.floor(100000000 + Math.random() * 900000000).toString(),
       };
       users.push(user);
       localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
-      this.updateUserAssets(user.id, []);
+      
+      // Auto-create default wallets (BTC & ETH) for Google Users too
+      const defaultAssets: Asset[] = [
+        {
+          id: 'bitcoin',
+          name: 'Bitcoin',
+          symbol: 'BTC',
+          balance: 0,
+          price: 0, 
+          change24h: 0,
+          value: 0,
+          color: '#F7931A',
+          wallet_address: `bc1${Math.random().toString(36).substring(7)}`,
+          is_enabled: true
+        },
+        {
+          id: 'ethereum',
+          name: 'Ethereum',
+          symbol: 'ETH',
+          balance: 0,
+          price: 0,
+          change24h: 0,
+          value: 0,
+          color: '#627EEA',
+          wallet_address: `0x${Math.random().toString(36).substring(7)}`,
+          is_enabled: true
+        }
+      ];
+      this.updateUserAssets(user.id, defaultAssets);
+    }
+    // ensure wallet number if missing for existing users
+    if (!user.wallet_number) {
+        user.wallet_number = Math.floor(100000000 + Math.random() * 900000000).toString();
+        this.updateUser(user.id, { wallet_number: user.wallet_number });
     }
 
     localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));

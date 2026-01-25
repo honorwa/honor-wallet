@@ -1,7 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { User, Asset, SupportTicket, Transaction, KYCRequest } from "../types";
 import { Users, AlertCircle, TrendingUp, DollarSign, FileText, Check, X, Eye } from "lucide-react";
+import { KYCReviewModal } from "./KYCReviewModal";
 
 interface AdminDashboardProps {
   users: User[];
@@ -13,6 +14,8 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, assets, tickets, transactions = [], kycRequests = [], onProcessKYC }) => {
+  const [selectedKYC, setSelectedKYC] = useState<KYCRequest | null>(null);
+
   const totalValue = assets.reduce((sum, wallet) => sum + wallet.value, 0) * 125; 
   const openTickets = tickets.filter(t => t.status === 'open');
   const pendingKYC = kycRequests.filter(k => k.status === 'pending');
@@ -21,17 +24,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, assets, t
     .filter(t => t.type === 'fee_collection')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const viewDocument = (data: string | undefined, name: string) => {
-      if (!data) return alert("Document data missing");
-      const win = window.open();
-      if (win) {
-          win.document.write(`<iframe src="${data}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-          win.document.title = name;
-      }
-  };
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {selectedKYC && onProcessKYC && (
+        <KYCReviewModal 
+            isOpen={true}
+            request={selectedKYC}
+            onClose={() => setSelectedKYC(null)}
+            onProcess={onProcessKYC}
+        />
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-gradient-to-br from-black to-zinc-900 border border-[#D4AF37]/20 backdrop-blur-xl p-6 rounded-2xl group">
           <div className="flex items-center gap-2 mb-2">
@@ -81,40 +84,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ users, assets, t
                ) : (
                    pendingKYC.map(req => (
                        <div key={req.id} className="p-4 bg-black rounded-lg border border-white/5 flex flex-col justify-between items-start gap-4">
-                           <div className="w-full flex justify-between">
+                           <div className="w-full flex justify-between items-start">
                                <div>
                                     <p className="text-white font-bold text-sm">{req.userEmail}</p>
                                     <p className="text-xs text-zinc-500">Submitted: {new Date(req.submittedAt).toLocaleDateString()}</p>
                                </div>
-                           </div>
-                           
-                           <div className="flex gap-2 w-full">
                                <button 
-                                onClick={() => viewDocument(req.idDocumentData, req.idDocumentName)}
-                                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-xs py-2 rounded text-zinc-300 flex items-center justify-center gap-1"
+                                   onClick={() => setSelectedKYC(req)}
+                                   className="px-4 py-2 bg-[#D4AF37] hover:bg-[#FFD700] text-black text-xs font-bold uppercase rounded-lg transition-colors shadow-lg shadow-[#D4AF37]/20 flex items-center gap-2"
                                >
-                                   <Eye size={12}/> View ID
-                               </button>
-                               <button 
-                                onClick={() => viewDocument(req.proofDocumentData, req.proofDocumentName)}
-                                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-xs py-2 rounded text-zinc-300 flex items-center justify-center gap-1"
-                               >
-                                   <Eye size={12}/> View Proof
-                               </button>
-                           </div>
-
-                           <div className="flex gap-2 w-full pt-2 border-t border-white/5">
-                               <button 
-                                   onClick={() => onProcessKYC && onProcessKYC(req.id, false)}
-                                   className="flex-1 py-2 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors text-xs font-bold uppercase"
-                               >
-                                   Reject
-                               </button>
-                               <button 
-                                   onClick={() => onProcessKYC && onProcessKYC(req.id, true)}
-                                   className="flex-1 py-2 rounded bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors text-xs font-bold uppercase"
-                               >
-                                   Approve
+                                   <Eye size={14}/> Review
                                </button>
                            </div>
                        </div>

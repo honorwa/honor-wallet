@@ -8,9 +8,10 @@ interface BuyCryptoProps {
   onBuy: (amount: number, crypto: CryptoOption, fee: number, method: string, provider?: string) => void;
   availableCryptos?: CryptoOption[];
   onNavigate?: (page: Page) => void;
+  marketPrices?: Record<string, number>;
 }
 
-export const BuyCrypto: React.FC<BuyCryptoProps> = ({ onBuy, availableCryptos = AVAILABLE_CRYPTOS, onNavigate }) => {
+export const BuyCrypto: React.FC<BuyCryptoProps> = ({ onBuy, availableCryptos = AVAILABLE_CRYPTOS, onNavigate, marketPrices = {} }) => {
   const [amount, setAmount] = useState<string>('');
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoOption>(availableCryptos[0]);
   const [step, setStep] = useState<'amount' | 'payment' | 'onramp_process' | 'success'>('amount');
@@ -35,6 +36,9 @@ export const BuyCrypto: React.FC<BuyCryptoProps> = ({ onBuy, availableCryptos = 
     const updated = availableCryptos.find(c => c.symbol === selectedCrypto.symbol);
     if (updated) setSelectedCrypto(updated);
   }, [availableCryptos, selectedCrypto.symbol]);
+
+  // Use live price if available, otherwise fallback to static
+  const currentPrice = marketPrices[selectedCrypto.symbol] || selectedCrypto.price;
 
   const calculateFee = () => {
     if (!amount) return 0;
@@ -93,12 +97,13 @@ Keep it very brief (max 2 sentences). Start with "I recommend [Provider] because
 
   const finalizeTransaction = () => {
     const fee = calculateFee();
-    onBuy(parseFloat(amount), selectedCrypto, fee, paymentMethod, paymentMethod === 'onramp' ? selectedProvider : undefined);
+    // Pass currentPrice to onBuy if needed, or component handles it
+    onBuy(parseFloat(amount), { ...selectedCrypto, price: currentPrice }, fee, paymentMethod, paymentMethod === 'onramp' ? selectedProvider : undefined);
     setIsProcessing(false);
     setStep('success');
   };
 
-  const estimatedCrypto = parseFloat(amount) ? (parseFloat(amount) / selectedCrypto.price).toFixed(6) : '0.00';
+  const estimatedCrypto = parseFloat(amount) ? (parseFloat(amount) / currentPrice).toFixed(6) : '0.00';
   const fee = calculateFee();
   const total = parseFloat(amount) ? parseFloat(amount) + fee : 0;
 
@@ -139,7 +144,9 @@ Keep it very brief (max 2 sentences). Start with "I recommend [Provider] because
             <div>
               <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2 block">I want to buy</label>
               <div className="grid grid-cols-2 gap-3">
-                {availableCryptos.slice(0, 4).map(crypto => (
+                {availableCryptos.slice(0, 4).map(crypto => {
+                  const price = marketPrices[crypto.symbol] || crypto.price;
+                  return (
                   <button
                     key={crypto.symbol}
                     onClick={() => setSelectedCrypto(crypto)}
@@ -154,10 +161,11 @@ Keep it very brief (max 2 sentences). Start with "I recommend [Provider] because
                     </div>
                     <div>
                       <div className="text-white font-medium">{crypto.symbol}</div>
-                      <div className="text-zinc-500 text-xs">${crypto.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                      <div className="text-zinc-500 text-xs">${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

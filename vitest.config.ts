@@ -1,12 +1,21 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vitest/config'
+import path from 'path';
+import { defineConfig, mergeConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-  },
-})
+export default mergeConfig(
+  defineConfig({
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+      }
+    },
+  }),
+  defineConfig({
+    test: {
+      globals: true,
+      environment: 'jsdom',
+    },
+  } as any)
+)

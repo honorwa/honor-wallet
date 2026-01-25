@@ -9,10 +9,12 @@ interface ConvertProps {
   marketPrices: Record<string, number>;
   onConvert: (fromAsset: string, toAsset: string, fromAmount: number, toAmount: number, fee: number) => void;
   language?: "en" | "fr" | "es" | "it";
+  feePercentage?: number;
 }
 
 const translations = {
     en: {
+        // ... existing translations
         title: "Convert Assets",
         from: "From",
         to: "To (Estimated)",
@@ -26,8 +28,10 @@ const translations = {
         into: "into approximately",
         cancel: "Cancel",
         confirm: "Confirm Swap",
-        insufficient: "Insufficient Balance"
+        insufficient: "Insufficient Balance",
+        max: "MAX"
     },
+    // ... add 'max' to other languages if needed or default to EN
     fr: {
         title: "Convertir des Actifs",
         from: "De",
@@ -42,7 +46,8 @@ const translations = {
         into: "en environ",
         cancel: "Annuler",
         confirm: "Confirmer l'échange",
-        insufficient: "Solde Insuffisant"
+        insufficient: "Solde Insuffisant",
+        max: "MAX"
     },
     es: {
         title: "Convertir Activos",
@@ -58,7 +63,8 @@ const translations = {
         into: "en aproximadamente",
         cancel: "Cancelar",
         confirm: "Confirmar Canje",
-        insufficient: "Saldo Insuficiente"
+        insufficient: "Saldo Insuficiente",
+        max: "MAX"
     },
     it: {
         title: "Converti Asset",
@@ -74,11 +80,12 @@ const translations = {
         into: "in circa",
         cancel: "Annulla",
         confirm: "Conferma Scambio",
-        insufficient: "Saldo Insufficiente"
+        insufficient: "Saldo Insufficiente",
+        max: "MAX"
     }
 };
 
-export const Convert: React.FC<ConvertProps> = ({ assets, marketPrices, onConvert, language = "en" }) => {
+export const Convert: React.FC<ConvertProps> = ({ assets, marketPrices, onConvert, language = "en", feePercentage = 0.5 }) => {
   const [fromAssetSymbol, setFromAssetSymbol] = useState(assets[0]?.symbol || 'BTC');
   const [toAssetSymbol, setToAssetSymbol] = useState(AVAILABLE_CRYPTOS[1].symbol);
   const [amount, setAmount] = useState('');
@@ -99,18 +106,28 @@ export const Convert: React.FC<ConvertProps> = ({ assets, marketPrices, onConver
   // Exchange Rate Calculation
   const exchangeRate = toPrice > 0 ? fromPrice / toPrice : 0;
   const estimatedOutput = parseFloat(amount) ? parseFloat(amount) * exchangeRate : 0;
-  const fee = parseFloat(amount) ? parseFloat(amount) * 0.005 : 0; // 0.5% fee
+  
+  // Use admin defined fee or default 0.5%
+  const feeRate = feePercentage / 100;
+  const fee = parseFloat(amount) ? parseFloat(amount) * feeRate : 0; 
   const feeInUsd = fee * fromPrice;
-  const finalOutput = estimatedOutput * 0.995;
+  const finalOutput = estimatedOutput * (1 - feeRate);
 
   const handleSwap = () => {
     if (parseFloat(amount) > fromAsset.balance) {
       alert(t.insufficient);
       return;
     }
+    // Ensure finalOutput is valid
+    if (finalOutput < 0) return;
+
     onConvert(fromAssetSymbol, toAssetSymbol, parseFloat(amount), finalOutput, feeInUsd);
     setAmount('');
     setIsConfirming(false);
+  };
+
+  const handleSetMax = () => {
+      setAmount(fromAsset.balance.toString());
   };
 
   return (
@@ -122,7 +139,15 @@ export const Convert: React.FC<ConvertProps> = ({ assets, marketPrices, onConver
         <div className="bg-black p-4 rounded-xl border border-white/5 mb-2">
           <div className="flex justify-between mb-2">
             <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">{t.from}</span>
-            <span className="text-zinc-500 text-[10px] uppercase tracking-widest">{t.balance}: {fromAsset.balance.toFixed(6)}</span>
+            <div className="flex items-center gap-2">
+                <span className="text-zinc-500 text-[10px] uppercase tracking-widest">{t.balance}: {fromAsset.balance.toFixed(6)}</span>
+                <button 
+                    onClick={handleSetMax}
+                    className="text-[#D4AF37] text-[9px] border border-[#D4AF37]/30 px-1.5 py-0.5 rounded font-black hover:bg-[#D4AF37] hover:text-black transition-colors"
+                >
+                    {t.max}
+                </button>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <input 
@@ -188,7 +213,7 @@ export const Convert: React.FC<ConvertProps> = ({ assets, marketPrices, onConver
           </div>
           <div className="flex justify-between text-zinc-400">
             <span className="flex items-center gap-1 uppercase tracking-wide">{t.fee} <Info className="w-3 h-3"/></span>
-            <span className="font-mono">{fee.toFixed(6)} {fromAssetSymbol} (0.5%)</span>
+            <span className="font-mono">{fee.toFixed(6)} {fromAssetSymbol} ({feePercentage}%)</span>
           </div>
         </div>
 

@@ -23,6 +23,7 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({
   const [fee, setFee] = useState<string>(user.fee_percentage?.toString() || '0');
   const [buyAccess, setBuyAccess] = useState<boolean>(user.buy_access || false);
   const [role, setRole] = useState<'super_admin' | 'admin' | 'user'>(user.role || 'user');
+  const [walletNumber, setWalletNumber] = useState<string>(user.wallet_number || '');
 
   if (!isOpen) return null;
 
@@ -32,6 +33,7 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({
         verified: isVerified,
         fee_percentage: parseFloat(fee),
         buy_access: buyAccess,
+        wallet_number: walletNumber,
         ...(currentAdminRole === 'super_admin' ? { role } : {})
     });
     onClose();
@@ -61,6 +63,17 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 <p className="text-white font-medium">{user.full_name}</p>
                 <p className="text-slate-400 text-sm">{user.email}</p>
              </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-300 mb-2 block">Wallet Number</label>
+            <input 
+                type="text"
+                value={walletNumber}
+                onChange={e => setWalletNumber(e.target.value)}
+                placeholder="e.g. 123456789"
+                className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+            />
           </div>
 
           <div className="space-y-4">

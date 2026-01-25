@@ -113,10 +113,6 @@ export const Profile: React.FC<ProfileProps> = ({ user, onSubmitKYC, language = 
   
   const t = translations[language] || translations.en;
 
-  // Dynamic Session Info
-  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-  const platform = navigator.platform.split(' ')[0] || "Unknown OS";
-  const browser = navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Safari") ? "Safari" : "Browser";
 
   const handleFileUpload = (type: 'id' | 'proof', file: File) => {
     setKycFiles(prev => ({ ...prev, [type]: file }));
@@ -275,29 +271,6 @@ export const Profile: React.FC<ProfileProps> = ({ user, onSubmitKYC, language = 
                 </div>
             </div>
 
-            {/* Connected Devices - Dynamic */}
-            <div className="bg-slate-900/50 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-xl">
-                <div className="p-6 border-b border-white/10">
-                    <h3 className="text-white font-semibold flex items-center gap-2">
-                        <Smartphone className="w-4 h-4 text-blue-400" />
-                        {t.connectedDevices}
-                    </h3>
-                </div>
-                <div className="divide-y divide-white/5">
-                    <div className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center">
-                                {isMobile ? <Smartphone className="w-5 h-5 text-emerald-400" /> : <Globe className="w-5 h-5 text-emerald-400" />}
-                            </div>
-                            <div>
-                                <p className="text-white font-medium text-sm">{platform} - {browser}</p>
-                                <p className="text-xs text-slate-400">Current Session • Active Now</p>
-                            </div>
-                        </div>
-                        <div className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase rounded">This Device</div>
-                    </div>
-                </div>
-            </div>
         </div>
       )}
 

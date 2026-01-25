@@ -213,7 +213,7 @@ function App() {
           }
       }} language={language} />;
       
-      case Page.CONVERT: return <Convert assets={assets} marketPrices={marketPrices} onConvert={(from, to, amt, out, fee) => {
+      case Page.CONVERT: return <Convert assets={assets} marketPrices={marketPrices} feePercentage={currentUser?.fee_percentage || 0.5} onConvert={(from, to, amt, out, fee) => {
            if (!checkRestriction()) return;
            const fromAsset = assets.find(a => a.symbol === from);
            const toAsset = assets.find(a => a.symbol === to);
@@ -223,7 +223,15 @@ function App() {
            else {
                // Enable wallet if not enabled
                authService.enableWallet(currentUser!.id, to);
-               // Then update... omitted for brevity
+               // Then update (fetching new assets first)
+               const newAssets = authService.getUserAssets(currentUser!.id);
+               const newToAsset = newAssets.find(a => a.symbol === to);
+               if (newToAsset) {
+                   newToAsset.balance = out;
+                   newToAsset.value = out * newToAsset.price;
+                   authService.updateUserAssets(currentUser!.id, newAssets);
+                   setAssets(newAssets);
+               }
            }
            handleTransaction({ 
               id: `tx_${Date.now()}`, 
@@ -236,12 +244,39 @@ function App() {
            });
       }} />;
 
-      case Page.BUY: return <BuyCrypto onBuy={(amount, crypto, fee, method, provider) => {
+      case Page.BUY: return <BuyCrypto marketPrices={marketPrices} onBuy={(amount, crypto, fee, method, provider) => {
           if (!checkRestriction()) return;
+          // Use the price from the crypto object (which now includes live price if updated in BuyCrypto)
+          // Or we can recount value based on marketPrices[crypto.symbol] here if needed. 
+          // The crypto object passed back from BuyCrypto should have the price used for calculation.
+          
           const asset = assets.find(a => a.symbol === crypto.symbol);
           if (asset) {
               handleUpdateAsset(asset.id, asset.balance + amount);
               handleTransaction({
+                  id: `tx_${Date.now()}`,
+                  type: 'buy',
+                  asset: crypto.symbol,
+                  amount: amount,
+                  date: new Date().toISOString(),
+                  status: 'completed',
+                  description: `Bought ${amount} ${crypto.symbol} via ${provider || method}`
+              });
+          } else {
+             // Handle case if asset doesn't exist (e.g. enable it)
+             const newAssets = authService.enableWallet(currentUser!.id, crypto.symbol);
+             setAssets(newAssets);
+             // Then update balance (fetch fresh to be sure)
+             const freshAssets = authService.getUserAssets(currentUser!.id);
+             const targetAsset = freshAssets.find(a => a.symbol === crypto.symbol);
+             if (targetAsset) {
+                 targetAsset.balance = amount;
+                 targetAsset.value = amount * (marketPrices[crypto.symbol] || crypto.price);
+                 authService.updateUserAssets(currentUser!.id, freshAssets);
+                 setAssets(freshAssets);
+             }
+             
+             handleTransaction({
                   id: `tx_${Date.now()}`,
                   type: 'buy',
                   asset: crypto.symbol,

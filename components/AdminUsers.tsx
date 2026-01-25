@@ -4,6 +4,7 @@ import { User, Asset } from "../types";
 import { Search, Edit, Wallet, AlertTriangle } from "lucide-react";
 import { EditUserDialog } from "./EditUserDialog";
 import { EditWalletDialog } from "./EditWalletDialog";
+import { authService } from "../services/authServiceCompat";
 
 interface AdminUsersProps {
   users: User[];
@@ -39,8 +40,26 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
         <EditWalletDialog 
             isOpen={true}
             onClose={() => setEditingWalletsFor(null)}
-            assets={assets} // Note: in real implementation, fetch specific user assets here
-            onUpdateAsset={(id, val) => onUpdateUserAsset(editingWalletsFor.id, id, val)}
+            assets={authService.getUserAssets(editingWalletsFor.id)}
+            onUpdateAsset={(assetId, newBalance, newAddress) => {
+                const userAssets = authService.getUserAssets(editingWalletsFor.id);
+                const assetIndex = userAssets.findIndex(a => a.id === assetId);
+                
+                if (assetIndex >= 0) {
+                    userAssets[assetIndex] = { 
+                        ...userAssets[assetIndex], 
+                        balance: newBalance,
+                        value: newBalance * (userAssets[assetIndex].price || 0),
+                        wallet_address: newAddress || userAssets[assetIndex].wallet_address
+                    };
+                    authService.updateUserAssets(editingWalletsFor.id, userAssets);
+                    
+                    // Force refresh if needed, or rely on next render
+                } else {
+                     // Handle case where asset doesn't exist for user (maybe enable it?)
+                     // For now assume assets exist (default wallets)
+                }
+            }}
             userEmail={editingWalletsFor.email}
         />
       )}
