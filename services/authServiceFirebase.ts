@@ -1,20 +1,41 @@
 import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
-  GoogleAuthProvider,
-  sendEmailVerification,
   signOut as firebaseSignOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
   updateProfile,
+  User as FirebaseUser,
 } from "firebase/auth";
-import { auth } from "./firebase.config";
 import { User } from "../types";
+import { auth } from "./firebase.config";
+
+type AuthErrorWithCode = Error & { code?: string };
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: "select_account",
+});
+
+const createAuthError = (message: string, code?: string): AuthErrorWithCode => {
+  const authError = new Error(message) as AuthErrorWithCode;
+  authError.code = code;
+  return authError;
+};
+
+const toAppUser = (firebaseUser: FirebaseUser, fallbackEmail = ""): User => ({
+  id: firebaseUser.uid,
+  full_name: firebaseUser.displayName || "User",
+  email: firebaseUser.email || fallbackEmail,
+  role: "user",
+  kyc_status: "none",
+  status: "on_hold",
+  verified: firebaseUser.emailVerified,
+  email_verified: firebaseUser.emailVerified,
+  join_date: new Date().toISOString(),
+  buy_access: false,
 });
 
 export class FirebaseAuthService {
@@ -33,9 +54,7 @@ export class FirebaseAuthService {
       );
       const firebaseUser = userCredential.user;
 
-      await updateProfile(firebaseUser, {
-        displayName: fullName,
-      });
+      await updateProfile(firebaseUser, { displayName: fullName });
 
       console.log("Sending email verification...");
       await sendEmailVerification(firebaseUser);
@@ -43,7 +62,7 @@ export class FirebaseAuthService {
       const user: User = {
         id: firebaseUser.uid,
         full_name: fullName,
-        email: email,
+        email,
         role: "user",
         kyc_status: "none",
         status: "on_hold",
@@ -58,24 +77,21 @@ export class FirebaseAuthService {
         email,
       );
 
-      return {
-        user,
-        needsVerification: true,
-      };
+      return { user, needsVerification: true };
     } catch (error: any) {
       console.error("Firebase registration error:", error);
 
       if (error.code === "auth/email-already-in-use") {
-        throw new Error("This email is already registered");
+        throw createAuthError("This email is already registered", error.code);
       }
       if (error.code === "auth/weak-password") {
-        throw new Error("Password should be at least 6 characters");
+        throw createAuthError("Password should be at least 6 characters", error.code);
       }
       if (error.code === "auth/invalid-email") {
-        throw new Error("Invalid email address");
+        throw createAuthError("Invalid email address", error.code);
       }
 
-      throw new Error(error.message || "Registration failed");
+      throw createAuthError(error.message || "Registration failed", error.code);
     }
   }
 
@@ -94,19 +110,7 @@ export class FirebaseAuthService {
         console.warn("Email not verified yet");
       }
 
-      const user: User = {
-        id: firebaseUser.uid,
-        full_name: firebaseUser.displayName || "User",
-        email: firebaseUser.email || email,
-        role: "user",
-        kyc_status: "none",
-        status: "on_hold",
-        verified: firebaseUser.emailVerified,
-        email_verified: firebaseUser.emailVerified,
-        join_date: new Date().toISOString(),
-        buy_access: false,
-      };
-
+      const user = toAppUser(firebaseUser, email);
       console.log("User logged in successfully:", user.email);
       return user;
     } catch (error: any) {
@@ -117,13 +121,13 @@ export class FirebaseAuthService {
         error.code === "auth/wrong-password" ||
         error.code === "auth/invalid-credential"
       ) {
-        throw new Error("Invalid email or password");
+        throw createAuthError("Invalid email or password", error.code);
       }
       if (error.code === "auth/too-many-requests") {
-        throw new Error("Too many attempts. Please try again later");
+        throw createAuthError("Too many attempts. Please try again later", error.code);
       }
 
-      throw new Error(error.message || "Login failed");
+      throw createAuthError(error.message || "Login failed", error.code);
     }
   }
 
@@ -135,16 +139,9 @@ export class FirebaseAuthService {
       const firebaseUser = result.user;
 
       const user: User = {
-        id: firebaseUser.uid,
-        full_name: firebaseUser.displayName || "User",
-        email: firebaseUser.email || "",
-        role: "user",
-        kyc_status: "none",
-        status: "on_hold",
+        ...toAppUser(firebaseUser),
         verified: true,
         email_verified: true,
-        join_date: new Date().toISOString(),
-        buy_access: false,
       };
 
       console.log("Google sign-in successful:", user.email);
@@ -153,21 +150,28 @@ export class FirebaseAuthService {
       console.error("Google sign-in error:", error);
 
       if (error.code === "auth/popup-closed-by-user") {
-        throw new Error("Sign-in cancelled");
+        throw createAuthError("Sign-in cancelled", error.code);
       }
       if (error.code === "auth/popup-blocked") {
-        throw new Error("Popup blocked. Please allow popups for this site");
+        throw createAuthError(
+          "Popup blocked. Please allow popups for this site",
+          error.code,
+        );
       }
       if (error.code === "auth/unauthorized-domain") {
-        throw new Error(
+        throw createAuthError(
           "This domain is not authorized. Add it in Firebase Console",
+          error.code,
         );
       }
       if (error.code === "auth/configuration-not-found") {
-        throw new Error("Google Sign-In not configured in Firebase Console");
+        throw createAuthError(
+          "Google Sign-In not configured in Firebase Console",
+          error.code,
+        );
       }
 
-      throw new Error(error.message || "Google sign-in failed");
+      throw createAuthError(error.message || "Google sign-in failed", error.code);
     }
   }
 
@@ -184,19 +188,7 @@ export class FirebaseAuthService {
   static onAuthStateChange(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        const user: User = {
-          id: firebaseUser.uid,
-          full_name: firebaseUser.displayName || "User",
-          email: firebaseUser.email || "",
-          role: "user",
-          kyc_status: "none",
-          status: "on_hold",
-          verified: firebaseUser.emailVerified,
-          email_verified: firebaseUser.emailVerified,
-          join_date: new Date().toISOString(),
-          buy_access: false,
-        };
-        callback(user);
+        callback(toAppUser(firebaseUser));
       } else {
         callback(null);
       }
@@ -221,5 +213,3 @@ export class FirebaseAuthService {
     console.log("Verification email resent");
   }
 }
-
-export const firebaseAuthService = FirebaseAuthService;
