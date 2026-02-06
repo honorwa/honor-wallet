@@ -16,7 +16,7 @@ import {
   ArrowRight,
   ArrowLeft,
 } from "lucide-react";
-import { firebaseAuthService } from "../services/authServiceFirebase";
+import { FirebaseAuthService } from "../services/authServiceFirebase";
 import { authService } from "../services/authServiceCompat";
 import { RecaptchaVerifier } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "../services/firebase.config";
@@ -45,7 +45,93 @@ const translations = {
     next_btn: "Next Step",
     back_btn: "Back",
     or_continue: "Or continue with",
-@@ -121,601 +135,767 @@ const translations = {
+    google_btn: "Google",
+    dont_have: "Don't have an account?",
+    already_have: "Already have an account?",
+    register_now: "Register now",
+    login_now: "Login",
+    error_creds: "Invalid credentials",
+    verification_sent: "Verification email sent! Check your inbox.",
+    check_spam: "Don't forget to check your spam folder.",
+    step_personal: "Personal Information",
+    step_contact: "Contact Details",
+    step_security: "Security",
+    password_mismatch: "Passwords do not match",
+    complete_captcha: "Please complete the reCAPTCHA verification",
+  },
+  fr: {
+    welcome_back: "Accès Sécurisé",
+    create_account: "Nouveau Compte",
+    subtitle_login: "Authentifiez-vous à votre portefeuille personnel.",
+    subtitle_signup: "Inscrivez-vous pour une gestion d'actifs numériques d'élite.",
+    email_label: "Adresse e-mail",
+    pass_label: "Mot de passe",
+    confirm_pass_label: "Confirmer le mot de passe",
+    first_name_label: "Prénom",
+    last_name_label: "Nom",
+    phone_label: "Numéro de téléphone",
+    dob_label: "Date de naissance",
+    country_label: "Pays",
+    address_label: "Adresse (Optionnel)",
+    login_btn: "Accéder au Portefeuille",
+    signup_btn: "Créer un compte",
+    next_btn: "Étape suivante",
+    back_btn: "Retour",
+    or_continue: "Ou continuer avec",
+    google_btn: "Google",
+    dont_have: "Vous n'avez pas de compte?",
+    already_have: "Vous avez déjà un compte?",
+    register_now: "S'inscrire maintenant",
+    login_now: "Se connecter",
+    error_creds: "Identifiants invalides",
+    verification_sent: "E-mail de vérification envoyé! Vérifiez votre boîte de réception.",
+    check_spam: "N'oubliez pas de vérifier votre dossier spam.",
+    step_personal: "Informations personnelles",
+    step_contact: "Coordonnées",
+    step_security: "Sécurité",
+    password_mismatch: "Les mots de passe ne correspondent pas",
+    complete_captcha: "Veuillez compléter la vérification reCAPTCHA",
+  },
+  es: {
+    welcome_back: "Acceso Seguro",
+    create_account: "Nueva Cuenta",
+    subtitle_login: "Autentíquese en su billetera personal.",
+    subtitle_signup: "Regístrese para la gestión de activos digitales de élite.",
+    email_label: "Dirección de correo electrónico",
+    pass_label: "Contraseña",
+    confirm_pass_label: "Confirmar contraseña",
+    first_name_label: "Nombre",
+    last_name_label: "Apellido",
+    phone_label: "Número de teléfono",
+    dob_label: "Fecha de nacimiento",
+    country_label: "País",
+    address_label: "Dirección (Opcional)",
+    login_btn: "Acceder a la Billetera",
+    signup_btn: "Crear cuenta",
+    next_btn: "Siguiente paso",
+    back_btn: "Atrás",
+    or_continue: "O continuar con",
+    google_btn: "Google",
+    dont_have: "¿No tienes una cuenta?",
+    already_have: "¿Ya tienes una cuenta?",
+    register_now: "Regístrate ahora",
+    login_now: "Iniciar sesión",
+    error_creds: "Credenciales inválidas",
+    verification_sent: "¡Correo de verificación enviado! Revisa tu bandeja de entrada.",
+    check_spam: "No olvides revisar tu carpeta de spam.",
+    step_personal: "Información personal",
+    step_contact: "Detalles de contacto",
+    step_security: "Seguridad",
+    password_mismatch: "Las contraseñas no coinciden",
+    complete_captcha: "Por favor complete la verificación reCAPTCHA",
+  },
+  it: {
+    welcome_back: "Accesso Sicuro",
+    create_account: "Nuovo Account",
+    subtitle_login: "Autenticati al tuo portafoglio personale.",
+    subtitle_signup: "Registrati per la gestione di asset digitali d'élite.",
+    email_label: "Indirizzo e-mail",
+    pass_label: "Password",
     confirm_pass_label: "Conferma password",
     first_name_label: "Nome",
     last_name_label: "Cognome",
@@ -151,7 +237,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
     try {
       if (isFirebaseConfigured) {
-        const user = await firebaseAuthService.loginWithGoogle();
+        const user = await FirebaseAuthService.loginWithGoogle();
         onLogin(user);
       } else {
         setError(
@@ -212,7 +298,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           );
 
           try {
-            const user = await firebaseAuthService.loginWithEmail(
+            const user = await FirebaseAuthService.loginWithEmail(
               email,
               password,
             );
@@ -260,7 +346,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           }
 
           const fullName = `${firstName} ${lastName}`;
-          const result = await firebaseAuthService.registerWithEmail(
+          const result = await FirebaseAuthService.registerWithEmail(
             fullName,
             email,
             password,
@@ -813,4 +899,3 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     </div>
   );
 };
-services/authServiceFirebase.ts
