@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.honor-wallet.com"
+        }
+      ],
+      "destination": "https://honor-wallet.com/:path*",
+      "permanent": true
+    }
+  ]
+}
