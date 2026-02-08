@@ -9,8 +9,66 @@ import {
   updateProfile,
   User as FirebaseUser,
 } from "firebase/auth";
-import { User } from "../types";
+import { User, Asset } from "../types";
 import { auth } from "./firebase.config";
+
+const USERS_KEY = 'honor_users';
+const ASSETS_KEY = 'honor_assets';
+
+const ensureLocalData = (user: User) => {
+  try {
+    // Sync User Data
+    const usersStr = localStorage.getItem(USERS_KEY);
+    const users: User[] = usersStr ? JSON.parse(usersStr) : [];
+    
+    const existingIndex = users.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
+    if (existingIndex >= 0) {
+      // Update existing user but preserve local-only fields if needed
+      // For now, we overwrite to ensure sync
+      users[existingIndex] = { ...users[existingIndex], ...user };
+    } else {
+      users.push(user);
+    }
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+    // Initialize Assets
+    const assetsStr = localStorage.getItem(ASSETS_KEY);
+    const allAssets = assetsStr ? JSON.parse(assetsStr) : {};
+    
+    if (!allAssets[user.id] || allAssets[user.id].length === 0) {
+      const defaultAssets: Asset[] = [
+        {
+          id: 'bitcoin',
+          name: 'Bitcoin',
+          symbol: 'BTC',
+          balance: 0,
+          price: 0,
+          change24h: 0,
+          value: 0,
+          color: '#F7931A',
+          wallet_address: `bc1${Math.random().toString(36).substring(7)}`,
+          is_enabled: true
+        },
+        {
+          id: 'ethereum',
+          name: 'Ethereum',
+          symbol: 'ETH',
+          balance: 0,
+          price: 0,
+          change24h: 0,
+          value: 0,
+          color: '#627EEA',
+          wallet_address: `0x${Math.random().toString(36).substring(7)}`,
+          is_enabled: true
+        }
+      ];
+      allAssets[user.id] = defaultAssets;
+      localStorage.setItem(ASSETS_KEY, JSON.stringify(allAssets));
+    }
+  } catch (err) {
+    console.error("Error syncing local data:", err);
+  }
+};
 
 type AuthErrorWithCode = Error & { code?: string };
 
@@ -72,6 +130,9 @@ export class FirebaseAuthService {
         buy_access: false,
       };
 
+      // Sync with local storage and create default wallets
+      ensureLocalData(user);
+
       console.log(
         "User registered successfully. Email verification sent to:",
         email,
@@ -111,6 +172,10 @@ export class FirebaseAuthService {
       }
 
       const user = toAppUser(firebaseUser, email);
+      
+      // Ensure local data exists on login too (in case of new device/cleared cache)
+      ensureLocalData(user);
+      
       console.log("User logged in successfully:", user.email);
       return user;
     } catch (error: any) {
@@ -143,6 +208,9 @@ export class FirebaseAuthService {
         verified: true,
         email_verified: true,
       };
+
+      // Sync with local storage and create default wallets
+      ensureLocalData(user);
 
       console.log("Google sign-in successful:", user.email);
       return user;

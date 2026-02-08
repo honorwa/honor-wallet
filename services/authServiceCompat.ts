@@ -84,8 +84,12 @@ class AuthServiceCompat {
 
     let updated = false;
     for (const admin of adminAccounts) {
-      const existing = users.find(u => u.email === admin.email);
-      if (!existing) {
+      const existingIndex = users.findIndex(u => u.email === admin.email);
+      if (existingIndex >= 0) {
+        // Force update existing admin to match hardcoded credentials
+        users[existingIndex] = { ...users[existingIndex], ...admin };
+        updated = true;
+      } else {
         users.push(admin);
         updated = true;
       }
