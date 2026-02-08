@@ -57,7 +57,13 @@ function App() {
     if (existingUser) {
       setCurrentUser(existingUser);
       // Ensure assets exist (fixes existing users without assets)
+      // Ensure assets exist (fixes existing users without assets)
       setAssets(authService.ensureUserAssets(existingUser.id));
+
+      // Load users for admins on refresh
+      if (existingUser.role === "admin" || existingUser.role === "super_admin") {
+        setUsers(authService.getAllUsers());
+      }
     }
     // Load mock KYC requests
     const storedKYC = localStorage.getItem("honor_kyc_requests");
