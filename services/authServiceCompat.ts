@@ -116,6 +116,44 @@ class AuthServiceCompat {
     return allAssets[userId] || [];
   }
 
+  static ensureUserAssets(userId: string): Asset[] {
+    const assets = this.getUserAssets(userId);
+    if (assets.length > 0) {
+      return assets;
+    }
+
+    // Default assets if none exist
+    const defaultAssets: Asset[] = [
+      {
+        id: 'bitcoin',
+        name: 'Bitcoin',
+        symbol: 'BTC',
+        balance: 0,
+        price: 0,
+        change24h: 0,
+        value: 0,
+        color: '#F7931A',
+        wallet_address: `bc1${Math.random().toString(36).substring(7)}`,
+        is_enabled: true
+      },
+      {
+        id: 'ethereum',
+        name: 'Ethereum',
+        symbol: 'ETH',
+        balance: 0,
+        price: 0,
+        change24h: 0,
+        value: 0,
+        color: '#627EEA',
+        wallet_address: `0x${Math.random().toString(36).substring(7)}`,
+        is_enabled: true
+      }
+    ];
+
+    this.updateUserAssets(userId, defaultAssets);
+    return defaultAssets;
+  }
+
   static updateUserAssets(userId: string, assets: Asset[]): void {
     const allAssets = JSON.parse(localStorage.getItem(this.ASSETS_KEY) || '{}');
     allAssets[userId] = assets;

@@ -56,7 +56,8 @@ function App() {
     const existingUser = authService.getCurrentUser();
     if (existingUser) {
       setCurrentUser(existingUser);
-      setAssets(authService.getUserAssets(existingUser.id));
+      // Ensure assets exist (fixes existing users without assets)
+      setAssets(authService.ensureUserAssets(existingUser.id));
     }
     // Load mock KYC requests
     const storedKYC = localStorage.getItem("honor_kyc_requests");
