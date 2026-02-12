@@ -1,6 +1,7 @@
 import { AuthService as NewAuthService } from './authService';
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { User, Asset } from '../types';
+import { AVAILABLE_CRYPTOS } from '../constants';
 
 class AuthServiceCompat {
   private static USERS_KEY = 'honor_users';
@@ -162,11 +163,37 @@ class AuthServiceCompat {
 
   static enableWallet(userId: string, symbol: string): Asset[] {
     const assets = this.getUserAssets(userId);
-    const assetIndex = assets.findIndex(a => a.symbol === symbol);
-    if (assetIndex !== -1) {
-      // Créer une copie modifiée sans la propriété enabled
-      assets[assetIndex] = { ...assets[assetIndex] };
+    const existing = assets.find(a => a.symbol === symbol);
+    if (existing) {
+      return assets;
     }
+
+    const cryptoInfo = AVAILABLE_CRYPTOS.find(c => c.symbol === symbol);
+    if (!cryptoInfo) return assets;
+
+    const walletPrefixes: Record<string, string> = {
+      BTC: 'bc1', ETH: '0x', BNB: 'bnb1', SOL: 'So1',
+      XRP: 'r', ADA: 'addr1', DOGE: 'D', DOT: '1',
+      MATIC: '0x', LINK: '0x', AVAX: '0x', TRX: 'T',
+      LTC: 'ltc1', BCH: 'bitcoincash:q', NEAR: '', UNI: '0x',
+      USDT: '0x', USDC: '0x', SHIB: '0x', XMR: '4'
+    };
+    const prefix = walletPrefixes[symbol] || '0x';
+
+    const newAsset: Asset = {
+      id: cryptoInfo.symbol.toLowerCase(),
+      name: cryptoInfo.name,
+      symbol: cryptoInfo.symbol,
+      balance: 0,
+      price: cryptoInfo.price,
+      change24h: 0,
+      value: 0,
+      color: cryptoInfo.color,
+      wallet_address: `${prefix}${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}`,
+      is_enabled: true
+    };
+
+    assets.push(newAsset);
     this.updateUserAssets(userId, assets);
     return assets;
   }

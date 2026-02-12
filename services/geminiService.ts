@@ -19,16 +19,12 @@ export const geminiService = {
 
 export async function fetchLivePrices(): Promise<Record<string, number>> {
   try {
-    console.log('Fetching live crypto prices from CoinGecko...');
-
-    const cryptoIds = 'bitcoin,ethereum,binancecoin,solana,cardano,ripple,polkadot,dogecoin,matic-network,chainlink';
+    const cryptoIds = 'bitcoin,ethereum,binancecoin,solana,cardano,ripple,polkadot,dogecoin,matic-network,chainlink,tether,usd-coin,shiba-inu,avalanche-2,tron,litecoin,bitcoin-cash,near,uniswap,monero';
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd&include_24hr_change=true`,
       {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
+        headers: { 'Accept': 'application/json' }
       }
     );
 
@@ -38,7 +34,7 @@ export async function fetchLivePrices(): Promise<Record<string, number>> {
 
     const data = await response.json();
 
-    const prices = {
+    const prices: Record<string, number> = {
       BTC: data.bitcoin?.usd || 43250.50,
       ETH: data.ethereum?.usd || 2280.30,
       BNB: data.binancecoin?.usd || 315.20,
@@ -49,24 +45,27 @@ export async function fetchLivePrices(): Promise<Record<string, number>> {
       DOGE: data.dogecoin?.usd || 0.089,
       MATIC: data['matic-network']?.usd || 0.85,
       LINK: data.chainlink?.usd || 14.67,
+      USDT: data.tether?.usd || 1.00,
+      USDC: data['usd-coin']?.usd || 1.00,
+      SHIB: data['shiba-inu']?.usd || 0.00002,
+      AVAX: data['avalanche-2']?.usd || 35.20,
+      TRX: data.tron?.usd || 0.11,
+      LTC: data.litecoin?.usd || 85.50,
+      BCH: data['bitcoin-cash']?.usd || 450.00,
+      NEAR: data.near?.usd || 6.80,
+      UNI: data.uniswap?.usd || 7.50,
+      XMR: data.monero?.usd || 120.00,
     };
 
-    console.log('Live prices fetched:', prices);
     return prices;
   } catch (error) {
-    console.error("Error fetching live prices from CoinGecko:", error);
-    console.warn("Using fallback prices");
+    console.error("Error fetching live prices:", error);
     return {
-      BTC: 43250.50,
-      ETH: 2280.30,
-      BNB: 315.20,
-      SOL: 98.45,
-      ADA: 0.52,
-      XRP: 0.61,
-      DOT: 7.32,
-      DOGE: 0.089,
-      MATIC: 0.85,
-      LINK: 14.67,
+      BTC: 43250.50, ETH: 2280.30, BNB: 315.20, SOL: 98.45,
+      ADA: 0.52, XRP: 0.61, DOT: 7.32, DOGE: 0.089,
+      MATIC: 0.85, LINK: 14.67, USDT: 1.00, USDC: 1.00,
+      SHIB: 0.00002, AVAX: 35.20, TRX: 0.11, LTC: 85.50,
+      BCH: 450.00, NEAR: 6.80, UNI: 7.50, XMR: 120.00,
     };
   }
 }

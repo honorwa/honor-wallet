@@ -41,11 +41,24 @@ function App() {
   const [language, setLanguage] = useState<"en" | "fr" | "es" | "it">("en");
 
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const stored = localStorage.getItem('honor_transactions');
+    return stored ? JSON.parse(stored) : MOCK_TRANSACTIONS;
+  });
   const [users, setUsers] = useState<User[]>([]);
-  const [tickets, setTickets] = useState<SupportTicket[]>(MOCK_TICKETS);
+  const [tickets, setTickets] = useState<SupportTicket[]>(() => {
+    const stored = localStorage.getItem('honor_tickets');
+    return stored ? JSON.parse(stored) : MOCK_TICKETS;
+  });
   const [kycRequests, setKycRequests] = useState<KYCRequest[]>([]);
+
+  useEffect(() => {
+    localStorage.setItem('honor_tickets', JSON.stringify(tickets));
+  }, [tickets]);
+
+  useEffect(() => {
+    localStorage.setItem('honor_transactions', JSON.stringify(transactions));
+  }, [transactions]);
 
   const [isWalletDialogOpen, setIsWalletDialogOpen] = useState(false);
   const [isAddWalletDialogOpen, setIsAddWalletDialogOpen] = useState(false);
@@ -72,7 +85,7 @@ function App() {
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    setAssets(authService.getUserAssets(user.id));
+    setAssets(authService.ensureUserAssets(user.id));
     if (user.role === "admin" || user.role === "super_admin") {
       setUsers(authService.getAllUsers());
       const storedKYC = localStorage.getItem("honor_kyc_requests");
@@ -136,7 +149,7 @@ function App() {
       }
     };
     updatePrices();
-    const intervalId = setInterval(updatePrices, 30000); // 30s sync for "actual to date"
+    const intervalId = setInterval(updatePrices, 60000);
     return () => clearInterval(intervalId);
   }, [currentUser]);
 

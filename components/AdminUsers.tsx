@@ -18,8 +18,9 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
   const [searchTerm, setSearchTerm] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingWalletsFor, setEditingWalletsFor] = useState<User | null>(null);
+  const [walletRefreshKey, setWalletRefreshKey] = useState(0);
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter(u =>
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -37,27 +38,24 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
       )}
 
       {editingWalletsFor && (
-        <EditWalletDialog 
+        <EditWalletDialog
+            key={walletRefreshKey}
             isOpen={true}
             onClose={() => setEditingWalletsFor(null)}
-            assets={authService.getUserAssets(editingWalletsFor.id)}
+            assets={authService.ensureUserAssets(editingWalletsFor.id)}
             onUpdateAsset={(assetId, newBalance, newAddress) => {
                 const userAssets = authService.getUserAssets(editingWalletsFor.id);
                 const assetIndex = userAssets.findIndex(a => a.id === assetId);
-                
+
                 if (assetIndex >= 0) {
-                    userAssets[assetIndex] = { 
-                        ...userAssets[assetIndex], 
+                    userAssets[assetIndex] = {
+                        ...userAssets[assetIndex],
                         balance: newBalance,
                         value: newBalance * (userAssets[assetIndex].price || 0),
                         wallet_address: newAddress || userAssets[assetIndex].wallet_address
                     };
                     authService.updateUserAssets(editingWalletsFor.id, userAssets);
-                    
-                    // Force refresh if needed, or rely on next render
-                } else {
-                     // Handle case where asset doesn't exist for user (maybe enable it?)
-                     // For now assume assets exist (default wallets)
+                    setWalletRefreshKey(prev => prev + 1);
                 }
             }}
             userEmail={editingWalletsFor.email}
@@ -77,6 +75,12 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
           </div>
         </div>
 
+        {filteredUsers.length === 0 ? (
+          <div className="text-center py-16 text-slate-500">
+            <p className="text-lg">No members found</p>
+            <p className="text-sm mt-2">Users will appear here after they register.</p>
+          </div>
+        ) : (
         <div className="space-y-4">
           {filteredUsers.map((u) => (
             <div
@@ -102,7 +106,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
 
               <div className="flex flex-wrap gap-2 items-center">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                        u.role === 'super_admin' ? "bg-purple-500/10 text-purple-400" :
+                        u.role === 'super_admin' ? "bg-amber-500/10 text-amber-500" :
                         u.role === 'admin' ? "bg-amber-500/10 text-amber-500" :
                         "bg-blue-500/10 text-blue-400"
                     }`}>
@@ -124,13 +128,16 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
               </div>
 
               <div className="flex gap-2 w-full md:w-auto">
-                 <button 
-                    onClick={() => setEditingWalletsFor(u)}
+                 <button
+                    onClick={() => {
+                        setEditingWalletsFor(u);
+                        setWalletRefreshKey(prev => prev + 1);
+                    }}
                     className="flex-1 md:flex-none px-4 py-2 bg-[#1C2333] hover:bg-[#252D40] text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                  >
                     <Wallet className="w-4 h-4" /> Vaults
                  </button>
-                 <button 
+                 <button
                     onClick={() => setEditingUser(u)}
                     className="flex-1 md:flex-none px-4 py-2 border border-white/10 hover:bg-white/5 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                  >
@@ -140,6 +147,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, onUpdateUser, ass
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );

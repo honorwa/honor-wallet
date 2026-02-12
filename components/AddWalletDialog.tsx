@@ -84,8 +84,8 @@ export const AddWalletDialog: React.FC<AddWalletDialogProps> = ({
                 onClick={() => setSelected(crypto)}
                 className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden ${
                   selected?.symbol === crypto.symbol
-                    ? 'bg-indigo-500/20 border-indigo-500'
-                    : 'bg-slate-800/50 border-white/10 hover:border-indigo-500/50'
+                    ? 'bg-[#D4AF37]/20 border-[#D4AF37]'
+                    : 'bg-slate-800/50 border-white/10 hover:border-[#D4AF37]/50'
                 }`}
               >
                 <div className="flex flex-col items-center justify-center gap-2">
@@ -101,7 +101,7 @@ export const AddWalletDialog: React.FC<AddWalletDialogProps> = ({
                   </div>
                 </div>
                 {selected?.symbol === crypto.symbol && (
-                  <div className="absolute inset-0 border-2 border-indigo-500 rounded-xl pointer-events-none" />
+                  <div className="absolute inset-0 border-2 border-[#D4AF37] rounded-xl pointer-events-none" />
                 )}
               </button>
             ))}
@@ -110,7 +110,7 @@ export const AddWalletDialog: React.FC<AddWalletDialogProps> = ({
           <button
             onClick={handleAdd}
             disabled={!selected}
-            className="w-full mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+            className="w-full mt-4 bg-[#D4AF37] hover:bg-[#FFD700] disabled:opacity-50 disabled:cursor-not-allowed text-black py-3 rounded-xl font-bold shadow-lg shadow-[#D4AF37]/20 transition-all active:scale-95"
           >
             {t.add}
           </button>
