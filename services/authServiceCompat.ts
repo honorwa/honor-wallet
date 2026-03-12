@@ -2,6 +2,7 @@ import { AuthService as NewAuthService } from './authService';
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { User, Asset } from '../types';
 import { AVAILABLE_CRYPTOS } from '../constants';
+import { getUserAssetsAsync, updateUserAssetsAsync, syncLocalToFirestore } from './firestoreAssetService';
 
 class AuthServiceCompat {
   private static USERS_KEY = 'honor_users';
@@ -111,15 +112,23 @@ class AuthServiceCompat {
     return users ? JSON.parse(users) : [];
   }
 
+  // Sync read (localStorage) — immediate/synchronous access
   static getUserAssets(userId: string): Asset[] {
     const assets = localStorage.getItem(this.ASSETS_KEY);
     const allAssets = assets ? JSON.parse(assets) : {};
     return allAssets[userId] || [];
   }
 
+  // Async read — fetches from Firestore first, falls back to localStorage
+  static async getUserAssetsAsync(userId: string): Promise<Asset[]> {
+    return getUserAssetsAsync(userId);
+  }
+
   static ensureUserAssets(userId: string): Asset[] {
     const assets = this.getUserAssets(userId);
     if (assets.length > 0) {
+      // Trigger background sync from Firestore on first load
+      syncLocalToFirestore(userId).catch(() => {});
       return assets;
     }
 
@@ -155,10 +164,13 @@ class AuthServiceCompat {
     return defaultAssets;
   }
 
+  // Write — saves to localStorage immediately + Firestore async (fire-and-forget)
   static updateUserAssets(userId: string, assets: Asset[]): void {
     const allAssets = JSON.parse(localStorage.getItem(this.ASSETS_KEY) || '{}');
     allAssets[userId] = assets;
     localStorage.setItem(this.ASSETS_KEY, JSON.stringify(allAssets));
+    // Persist to Firestore asynchronously
+    updateUserAssetsAsync(userId, assets).catch(() => {});
   }
 
   static enableWallet(userId: string, symbol: string): Asset[] {
